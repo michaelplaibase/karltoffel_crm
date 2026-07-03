@@ -99,7 +99,7 @@ export default async function CustomerDetail({
       <div className="card">
         <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h4 className="section-title">Kundens ordrer</h4>
-          <span className="btn btn-primary btn-sm">Opret ny ordre på kunden</span>
+          <Link href={`/orders/new?for_contact=${c.id}`} className="btn btn-primary btn-sm">Opret ny ordre på kunden</Link>
         </div>
         <div className="card-body tight">
           <div className="table-wrap">

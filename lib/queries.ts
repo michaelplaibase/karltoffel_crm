@@ -140,6 +140,12 @@ export async function getContactEditData(id: number) {
   };
 }
 
+/** All contacts as lightweight picker options (id, name, one-line address). */
+export async function getContactOptions() {
+  const rows = await prisma.contact.findMany({ orderBy: { name: "asc" } });
+  return rows.map((c) => ({ id: c.id, name: c.name, address: c.city ? `${c.street}, ${c.city}` : c.street }));
+}
+
 // ---- Subscriptions ---------------------------------------------------------
 
 export async function getSubscriptions(): Promise<Subscription[]> {
