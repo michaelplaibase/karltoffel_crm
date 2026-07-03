@@ -1,0 +1,33 @@
+/* ==========================================================================
+   Ensartet lodret rytme mellem sektioner.
+   Designsystemet gav varierende afstande ved sektions-skift (100px, ~200px og
+   ~30px omkring tilbudsmotoren). Her normaliseres alle skift til ÉN afstand:
+   100px — den samme som mellem hero og "Mindre bøvl"-teksten.
+   ========================================================================== */
+
+/* Hver sektion bidrager udelukkende med 100px foroven og 0 forneden, og
+   inter-sektions-margins nulstilles. Så bliver hvert skift = 0 + 100 = 100px. */
+.main-wrap .section{
+  padding-top:100px !important;
+  padding-bottom:0 !important;
+  margin-top:0 !important;
+  margin-bottom:0 !important;
+}
+
+/* Hero ligger flush mod toppen (under den faste header) — ingen top-luft. */
+.main-wrap .section--type-hero-big-button{ padding-top:0 !important; }
+
+/* Sidste indholdssektion beholder sin oprindelige bundluft mod footeren. */
+.main-wrap .section--type-cta{ padding-bottom:100px !important; }
+
+/* Tilbudsmotoren ligger inde i pakke-sektionen (ikke et top-niveau-skift).
+   Nulstil headerens bundafstand og giv motoren 100px over og under, så den
+   følger samme rytme som de øvrige skift. */
+.section--type-packages-slider .section__header{
+  margin-bottom:0 !important;
+  padding-bottom:0 !important;
+}
+#tilbudsmotor{
+  margin-top:100px !important;
+  margin-bottom:100px !important;
+}

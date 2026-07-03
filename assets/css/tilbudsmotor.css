@@ -1,0 +1,149 @@
+/* ==========================================================================
+   Karltoffel Tilbudsmotor (lead flow) — indlejret som sektion på forsiden.
+   Al CSS er scopet under .tm-flow, så den globale reset/body-styles fra den
+   oprindelige standalone-demo IKKE lækker ud på resten af siden.
+   ========================================================================== */
+
+/* DM Sans (self-hostet variabel font — brødtekst i flowet) */
+@font-face{
+  font-family:"DM Sans";
+  font-style:normal;
+  font-weight:100 1000;
+  font-display:swap;
+  src:url(../fonts/google/dm-sans-latin.woff2) format("woff2");
+}
+
+/* --- scope-rod: variabler + "body"-styles fra demoen ---------------------- */
+.tm-flow{
+  --brun:#4C3718; --gul:#FFF87B; --ivory:#FFFFF0; --bronze:#86612A;
+  --roed:#CC4B37; --graa:#CACACA;
+  --display:"snaga-unicase-display","DM Sans",sans-serif;
+  --body:"DM Sans",system-ui,sans-serif;
+
+  position:relative;
+  font-family:var(--body);
+  background:var(--brun);
+  color:var(--ivory);
+  min-height:100vh;
+}
+.tm-flow *{box-sizing:border-box;margin:0;padding:0}
+.tm-flow img,.tm-flow svg{display:block;max-width:100%}
+.tm-flow button{font-family:inherit;cursor:pointer}
+.tm-flow input,.tm-flow select{font-family:inherit}
+.tm-flow :focus-visible{outline:3px solid var(--gul);outline-offset:2px}
+
+.tm-flow .tm-main{max-width:1040px;margin:0 auto;padding:56px 24px 120px}
+.tm-flow .step{display:none}
+.tm-flow .step.active{display:block;animation:tm-stepin .45s ease both}
+@keyframes tm-stepin{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .tm-flow .step.active{animation:none}
+  .tm-flow *{transition:none!important;animation-duration:.01ms!important}
+}
+
+/* STEP 1: HERO */
+.tm-flow .hero{padding:9vh 0 12vh;text-align:center}
+.tm-flow .hero h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,64px);line-height:1.04;color:var(--gul);letter-spacing:.01em}
+.tm-flow .hero p.sub{margin:18px auto 0;max-width:520px;font-size:18px;color:var(--ivory);opacity:.92}
+.tm-flow .adr-wrap{position:relative;max-width:640px;margin:40px auto 0;text-align:left}
+.tm-flow .adr-label{display:block;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gul);margin:0 0 8px 4px}
+.tm-flow #adr-input{width:100%;padding:20px 22px;font-size:19px;border:0;border-radius:14px;background:var(--ivory);color:var(--brun)}
+.tm-flow #adr-input::placeholder{color:#8a7d5e}
+.tm-flow .adr-list{position:absolute;left:0;right:0;top:calc(100% + 8px);background:var(--ivory);color:var(--brun);border-radius:14px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.35);z-index:30;display:none}
+.tm-flow .adr-list.open{display:block}
+.tm-flow .adr-list button{display:block;width:100%;text-align:left;padding:13px 20px;background:none;border:0;font-size:16px;color:var(--brun)}
+.tm-flow .adr-list button:hover,.tm-flow .adr-list button:focus-visible{background:var(--gul)}
+.tm-flow .adr-list .hint{padding:10px 20px;font-size:13px;color:var(--bronze);border-top:1px dashed var(--graa)}
+.tm-flow .adr-note{margin:14px 4px 0;font-size:13px;color:var(--gul);opacity:.85;display:none}
+.tm-flow .adr-note.show{display:block}
+
+/* FETCH OVERLAY (signatur: gravesekvensen) — dækker sektionen */
+.tm-flow #dig{position:absolute;inset:0;background:var(--brun);display:none;align-items:center;justify-content:center;z-index:100}
+.tm-flow #dig.on{display:flex}
+.tm-flow .dig-inner{text-align:center;padding:24px;max-width:480px}
+.tm-flow .spade{width:74px;height:74px;margin:0 auto 26px;animation:tm-digbob 1s ease-in-out infinite}
+@keyframes tm-digbob{0%,100%{transform:rotate(-9deg) translateY(0)}50%{transform:rotate(7deg) translateY(9px)}}
+.tm-flow #dig-msg{font-family:var(--display);font-size:26px;color:var(--gul);min-height:1.4em}
+.tm-flow .dig-adr{margin-top:10px;font-size:15px;opacity:.8}
+.tm-flow .dig-bar{height:6px;background:#3a2a12;border-radius:99px;margin-top:26px;overflow:hidden}
+.tm-flow .dig-fill{height:100%;width:0;background:var(--gul);border-radius:99px;transition:width .5s ease}
+
+/* STEP 2: VERIFY */
+.tm-flow .verify{padding:6vh 0;text-align:center}
+.tm-flow .verify h2{font-family:var(--display);font-size:clamp(26px,4vw,40px);color:var(--gul)}
+.tm-flow .verify .adr{margin-top:8px;font-size:17px;opacity:.9}
+.tm-flow .foto-card{position:relative;max-width:640px;margin:28px auto 0;border-radius:18px;overflow:hidden;background:var(--ivory)}
+.tm-flow .foto-badge{position:absolute;top:14px;left:14px;z-index:2;background:var(--brun);color:var(--gul);font-size:11px;letter-spacing:.12em;padding:6px 10px;border-radius:999px;text-transform:uppercase}
+.tm-flow .sf-canvas{display:none;width:100%;height:auto;vertical-align:top}
+.tm-flow .foto-card.has-photo .sf-canvas{display:block}
+.tm-flow .foto-card.has-photo>svg{display:none}
+.tm-flow .foto-card.sf-loading{position:relative}
+.tm-flow .foto-card.sf-loading::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);background-size:200% 100%;animation:sfShimmer 1.1s linear infinite}
+@keyframes sfShimmer{from{background-position:180% 0}to{background-position:-80% 0}}
+@media (prefers-reduced-motion: reduce){.tm-flow .foto-card.sf-loading::after{animation:none}}
+.tm-flow .verify-btns{display:flex;gap:14px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.tm-flow .btn{border:0;border-radius:12px;padding:16px 30px;font-size:17px;font-weight:700}
+.tm-flow .btn-ja{background:var(--gul);color:var(--brun)}
+.tm-flow .btn-nej{background:transparent;color:var(--ivory);border:2px solid var(--bronze)}
+.tm-flow .btn-ja:hover{filter:brightness(1.05)}
+.tm-flow .verify small{display:block;margin-top:16px;opacity:.65;font-size:13px}
+
+/* STEP 3: LØSNINGSLISTE */
+.tm-flow .losning{padding:28px 0 0}
+.tm-flow .topbar{position:sticky;top:12px;z-index:40;background:var(--ivory);color:var(--brun);border-radius:18px;padding:18px 22px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.tm-flow .topbar .adr-line{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px}
+.tm-flow .pin{width:16px;height:16px;flex:none}
+.tm-flow .fakta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid #e4dfc8}
+.tm-flow .fakta div b{display:block;font-size:12px;color:var(--bronze);font-weight:500;letter-spacing:.04em}
+.tm-flow .fakta div span{font-size:16px;font-weight:700}
+.tm-flow .regnestrimmel{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid #e4dfc8}
+.tm-flow .regnestrimmel div b{display:block;font-size:12px;color:var(--bronze);font-weight:500}
+.tm-flow .regnestrimmel div span{font-size:23px;font-weight:700}
+.tm-flow #t-pris{color:var(--brun)}
+.tm-flow .demo-hint{font-size:12px;color:var(--bronze);margin-top:12px}
+
+.tm-flow .socio{margin:30px 4px 12px;font-size:15px;color:var(--gul)}
+.tm-flow .rows{display:flex;flex-direction:column;gap:12px}
+.tm-flow .row{display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;background:#5a4322;border-radius:16px;padding:16px 18px;transition:opacity .2s}
+.tm-flow .row.off{opacity:.45}
+.tm-flow .row input[type=checkbox]{width:24px;height:24px;accent-color:var(--gul)}
+.tm-flow .row .navn b{font-size:17px}
+.tm-flow .row .navn small{display:block;font-size:12.5px;opacity:.75;margin-top:2px}
+.tm-flow .qty{display:flex;align-items:center;gap:6px;font-size:13px}
+.tm-flow .qty input{width:64px;padding:7px 8px;border-radius:8px;border:0;background:var(--ivory);color:var(--brun);font-size:14px;text-align:right}
+.tm-flow .freq{display:flex;align-items:center;gap:10px;justify-self:end}
+.tm-flow .freq button{width:34px;height:34px;border-radius:10px;border:0;background:var(--gul);color:var(--brun);font-size:19px;font-weight:700;line-height:1}
+.tm-flow .freq button:disabled{opacity:.35;cursor:default}
+.tm-flow .freq .fv{min-width:74px;text-align:center;font-size:14px}
+.tm-flow .row .pris{justify-self:end;text-align:right;min-width:110px}
+.tm-flow .row .pris b{font-size:17px}
+.tm-flow .row .pris small{display:block;font-size:11.5px;opacity:.7}
+@media (max-width:720px){
+  .tm-flow .row{grid-template-columns:auto 1fr;grid-template-areas:"chk navn" "chk qty" "freq pris"}
+  .tm-flow .row input[type=checkbox]{grid-area:chk}
+  .tm-flow .row .navn{grid-area:navn}.tm-flow .row .qty{grid-area:qty}
+  .tm-flow .row .freq{grid-area:freq;justify-self:start}.tm-flow .row .pris{grid-area:pris}
+  .tm-flow .fakta,.tm-flow .regnestrimmel{grid-template-columns:repeat(2,1fr)}
+}
+.tm-flow .gaps{margin:26px 4px 0;font-size:13px;opacity:.7}
+
+/* fixed pris-bar — kun synlig på løsnings-trinnet */
+.tm-flow .cta-bar{position:fixed;left:0;right:0;bottom:0;background:var(--gul);color:var(--brun);display:none;z-index:60}
+.tm-flow .cta-bar.on{display:block}
+.tm-flow .cta-inner{max-width:1040px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 24px}
+.tm-flow .cta-inner .sum b{font-size:24px}
+.tm-flow .cta-inner .sum small{display:block;font-size:12px}
+.tm-flow .btn-cta{background:var(--brun);color:var(--gul);border:0;border-radius:12px;padding:15px 26px;font-size:17px;font-weight:700}
+
+/* STEP 4: KONTAKT + TAK */
+.tm-flow .kontakt{max-width:560px;margin:0 auto;padding:6vh 0}
+.tm-flow .kontakt h2{font-family:var(--display);color:var(--gul);font-size:clamp(26px,4vw,38px)}
+.tm-flow .kontakt p{margin-top:10px;opacity:.9}
+.tm-flow .kontakt label{display:block;margin:20px 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gul)}
+.tm-flow .kontakt input,.tm-flow .kontakt textarea{width:100%;padding:15px 16px;border-radius:12px;border:0;background:var(--ivory);color:var(--brun);font-size:16px}
+.tm-flow .kontakt .err{color:var(--gul);background:var(--roed);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:14px;display:none}
+.tm-flow .kontakt .err.show{display:block}
+.tm-flow .tak{max-width:560px;margin:0 auto;padding:12vh 0;text-align:center}
+.tm-flow .tak h2{font-family:var(--display);color:var(--gul);font-size:clamp(30px,5vw,46px)}
+.tm-flow .tak p{margin-top:14px;font-size:17px;opacity:.92}
+.tm-flow .tak .opsum{margin-top:26px;background:#5a4322;border-radius:16px;padding:18px;text-align:left;font-size:14.5px;line-height:1.7}
