@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getContactById, getSubscriptionsForContact, getOrdersForContact } from "@/lib/queries";
+import { getContactById, getSubscriptionsForContact, getFixedPricesForContact, getOrdersForContact } from "@/lib/queries";
 import { CatChip, MapLink, RowCaret, StatusPill, money } from "@/components/ui";
 
 export default async function CustomerDetail({
@@ -11,8 +11,9 @@ export default async function CustomerDetail({
   const { id } = await params;
   const c = await getContactById(Number(id));
   if (!c) notFound();
-  const [subs, orders] = await Promise.all([
+  const [subs, fixedPrices, orders] = await Promise.all([
     getSubscriptionsForContact(c.id),
+    getFixedPricesForContact(c.id),
     getOrdersForContact(c.id),
   ]);
 
@@ -85,12 +86,27 @@ export default async function CustomerDetail({
       </div>
 
       <div className="card">
-        <div className="card-header"><h4 className="section-title">Kundens fastprisaftaler</h4></div>
+        <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h4 className="section-title">Kundens fastprisaftaler</h4>
+          <Link href={`/fixed-prices/new?for_contact=${c.id}`} className="btn btn-primary btn-sm">Opret ny fastprisaftale på kunden</Link>
+        </div>
         <div className="card-body tight">
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Aftale nr.</th><th>Leveringsadresse</th><th>Opgaver</th><th>Pris</th></tr></thead>
-              <tbody><tr><td colSpan={4}><div className="table-empty">Ingen fastprisaftaler fundet for kunden</div></td></tr></tbody>
+              <thead><tr><th style={{ width: 34 }} /><th>Aftale nr.</th><th>Leveringsadresse</th><th>Opgaver</th><th>Pris</th></tr></thead>
+              <tbody>
+                {fixedPrices.length === 0 ? (
+                  <tr><td colSpan={5}><div className="table-empty">Ingen fastprisaftaler fundet for kunden</div></td></tr>
+                ) : fixedPrices.map((f) => (
+                  <tr key={f.id}>
+                    <td><RowCaret actions={["Rediger fastprisaftale", "Slet fastprisaftale…"]} /></td>
+                    <td className="num"><Link href={`/fixed-prices/${f.id}`}>{f.id}</Link></td>
+                    <td>{f.deliveryAddress}</td>
+                    <td>{f.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
+                    <td className="num">{f.tasks.map((t, i) => <div key={i}>{money(t.price)}</div>)}</td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </div>

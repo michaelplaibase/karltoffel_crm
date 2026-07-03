@@ -191,6 +191,61 @@ export async function getEmployeeNames(): Promise<string[]> {
   return ["Ingen", ...users.map((u) => `${u.firstName} ${u.lastName}`)];
 }
 
+// ---- Fixed-price agreements --------------------------------------------------
+
+export type FixedPrice = {
+  id: number; // displayNo ("Aftale nr.")
+  pk: number;
+  contactId: number;
+  contactName: string;
+  deliveryAddress: string;
+  tasks: TaskLine[];
+};
+
+type FixedRow = Prisma.FixedPriceAgreementGetPayload<{ include: { tasks: true; contact: true } }>;
+function mapFixedPrice(f: FixedRow): FixedPrice {
+  return {
+    id: f.displayNo,
+    pk: f.id,
+    contactId: f.contactId,
+    contactName: f.contact.name,
+    deliveryAddress: f.deliveryAddress,
+    tasks: [...f.tasks].sort((a, b) => a.sort - b.sort).map(mapTask),
+  };
+}
+
+export async function getFixedPrices(): Promise<FixedPrice[]> {
+  const rows = await prisma.fixedPriceAgreement.findMany({
+    include: { tasks: true, contact: true },
+    orderBy: { displayNo: "desc" },
+  });
+  return rows.map(mapFixedPrice);
+}
+
+export async function getFixedPricesForContact(contactId: number): Promise<FixedPrice[]> {
+  const rows = await prisma.fixedPriceAgreement.findMany({
+    where: { contactId },
+    include: { tasks: true, contact: true },
+    orderBy: { displayNo: "desc" },
+  });
+  return rows.map(mapFixedPrice);
+}
+
+/** Editor data for a fixed-price agreement, keyed by its display no ("Aftale nr."). */
+export async function getFixedPriceEditData(displayNo: number) {
+  const f = await prisma.fixedPriceAgreement.findUnique({ where: { displayNo }, include: { tasks: true } });
+  if (!f) return null;
+  return {
+    pk: f.id,
+    displayNo: f.displayNo,
+    contactId: f.contactId,
+    deliveryAddress: f.deliveryAddress,
+    tasks: [...f.tasks].sort((a, b) => a.sort - b.sort).map((t) => ({
+      description: t.description, price: String(t.price), duration: String(t.durationMin), category: t.category,
+    })),
+  };
+}
+
 // ---- Orders ----------------------------------------------------------------
 
 const orderInclude = { tasks: true, subscription: true, employee: true } as const;
