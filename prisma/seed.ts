@@ -6,6 +6,7 @@
 // observed numbers. The five week-27 orders are the auto-planner's demo week.
 import { PrismaClient } from "@prisma/client";
 import { CATEGORIES } from "../lib/categories";
+import { hashPassword } from "../lib/auth";
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,7 @@ async function main() {
   await prisma.user.create({
     data: {
       id: 1535, companyId: company.id, username: "kristianklercke",
+      passwordHash: hashPassword("karltoffel"),
       firstName: "Kristian", lastName: "Klercke", email: EMAIL,
       calendarColor: "#a4d5ee", activeCalendar: true, isAdmin: true,
       homeAddress: "8660 Skanderborg",

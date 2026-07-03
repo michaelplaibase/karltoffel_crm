@@ -32,6 +32,7 @@ model User {
   company          Company  @relation(fields: [companyId], references: [id])
   companyId        Int
   username         String   @unique
+  passwordHash     String?  // scrypt "salt:hash"; null = cannot log in
   firstName        String
   lastName         String
   email            String?

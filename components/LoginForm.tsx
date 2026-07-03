@@ -1,0 +1,37 @@
+"use client";
+
+import { useActionState } from "react";
+import { login } from "@/app/actions/auth";
+
+export default function LoginForm() {
+  const [state, formAction, pending] = useActionState(login, {});
+
+  return (
+    <div className="card form-card" style={{ maxWidth: 420 }}>
+      <div className="card-header header-primary">
+        <h3>Log ind på Karltoffel</h3>
+      </div>
+      <div className="card-body">
+        <form action={formAction}>
+          <div className="f2">
+            <label>Brugernavn</label>
+            <input name="username" className="form-control form-control-sm" autoComplete="username" autoFocus />
+          </div>
+          <div className="f2">
+            <label>Adgangskode</label>
+            <input name="password" type="password" className="form-control form-control-sm" autoComplete="current-password" />
+          </div>
+
+          {state.error && <div style={{ color: "#c0392b", fontSize: 13, margin: "4px 0 8px" }}>{state.error}</div>}
+
+          <div className="savebar">
+            <span className="field-help">Demo: kristianklercke / karltoffel</span>
+            <button type="submit" className="btn btn-primary" disabled={pending}>
+              {pending ? "Logger ind…" : "Log ind"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
