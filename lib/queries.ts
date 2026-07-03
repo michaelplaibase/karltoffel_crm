@@ -4,8 +4,20 @@
 // Prisma client in lib/db.ts.
 import { prisma } from "./db";
 import type { Contact, Subscription, Order, TaskLine } from "./data";
-import type { Job } from "./planner";
+import { planWeek, isoWeek, fmtTime, type Job } from "./planner";
+import {
+  sourceType, type CalEvent, type CalStatus, type LockState,
+  type WeekDay, type Employee, type CalendarWeek, type DayProgram, type DayStop,
+} from "./calendar";
 import type { Prisma } from "@prisma/client";
+
+/** The order-source display label ("Abo. #…" / "Online ordre" / …). */
+function sourceLabel(type: string, subDisplayNo?: number | null): string {
+  if (type === "subscription" && subDisplayNo != null) return `Abo. #${subDisplayNo}`;
+  if (type === "online") return "Online ordre";
+  if (type === "fixed") return "Fastprisaftale";
+  return "Manuel ordre";
+}
 
 // ---- row → view-type mappers ----------------------------------------------
 
@@ -58,11 +70,7 @@ function mapSubscription(s: SubRow): Subscription {
 
 type OrderRow = Prisma.OrderGetPayload<{ include: { tasks: true; subscription: true; employee: true } }>;
 function mapOrder(o: OrderRow): Order {
-  const source =
-    o.sourceType === "subscription" && o.subscription ? `Abo. #${o.subscription.displayNo}`
-    : o.sourceType === "online" ? "Online ordre"
-    : o.sourceType === "fixed" ? "Fastprisaftale"
-    : "Manuel ordre";
+  const source = sourceLabel(o.sourceType, o.subscription?.displayNo);
   const employee = o.employee ? `${o.employee.firstName} ${o.employee.lastName}` : "Ingen";
   return {
     id: o.id,
@@ -167,12 +175,129 @@ export async function getPlannerJobs(weekMonday: string): Promise<Job[]> {
     postal: postalOf(o.deliveryAddress),
     category: o.tasks[0]?.category ?? "Andet",
     durationMin: o.tasks.reduce((a, t) => a + t.durationMin, 0) || 30,
-    source:
-      o.sourceType === "subscription" && o.subscription ? `Abo. #${o.subscription.displayNo}`
-      : o.sourceType === "online" ? "Online ordre"
-      : "Manuel ordre",
+    source: sourceLabel(o.sourceType, o.subscription?.displayNo),
     // Hard planning constraints only — a subscription can pin fixed weekdays.
     // "Fast medarb." is "Ingen" in the demo, so no fixed-employee constraint.
     fixedWeekdays: o.subscription?.fixedWeekdays ? o.subscription.fixedWeekdays.split("").map(Number) : undefined,
   }));
+}
+
+// ---- Calendar / day program ------------------------------------------------
+
+const MON_SHORT = ["jan.", "feb.", "mar.", "apr.", "maj", "jun.", "jul.", "aug.", "sep.", "okt.", "nov.", "dec."];
+const MONTHS = ["Januar", "Februar", "Marts", "April", "Maj", "Juni", "Juli", "August", "September", "Oktober", "November", "December"];
+const DA_DAYS = ["man", "tir", "ons", "tor", "fre", "lør", "søn"];
+const WEEKDAYS_FULL = ["mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag"];
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtDrive = (min: number) => `${Math.floor(min / 60)} t ${min % 60} min`;
+
+/** Fetch the week's orders, derive planner jobs, and route them. Shared by the
+ *  week calendar and the day program so both agree on times, revenue and driving. */
+async function buildWeekPlan(weekMonday: string) {
+  const start = new Date(`${weekMonday}T00:00:00Z`);
+  const end = new Date(start.getTime() + 7 * 864e5);
+  const [orders, users] = await Promise.all([
+    prisma.order.findMany({
+      where: { plannedAt: { gte: start, lt: end } },
+      include: { tasks: true, subscription: true, contact: true },
+      orderBy: { id: "asc" },
+    }),
+    prisma.user.findMany({ where: { activeCalendar: true }, orderBy: { id: "asc" } }),
+  ]);
+  const priceById = new Map<number, number>();
+  const jobs: Job[] = orders.map((o) => {
+    priceById.set(o.id, o.tasks.reduce((a, t) => a + t.price, 0));
+    return {
+      id: o.id, contactId: o.contactId, customer: o.contact.name,
+      address: o.deliveryAddress, postal: postalOf(o.deliveryAddress),
+      category: o.tasks[0]?.category ?? "Andet",
+      durationMin: o.tasks.reduce((a, t) => a + t.durationMin, 0) || 30,
+      source: sourceLabel(o.sourceType, o.subscription?.displayNo),
+      fixedWeekdays: o.subscription?.fixedWeekdays ? o.subscription.fixedWeekdays.split("").map(Number) : undefined,
+    };
+  });
+  const plan = planWeek(jobs, weekMonday);
+  const empName = new Map(users.map((u) => [u.id, `${u.firstName} ${u.lastName}`]));
+  return { start, plan, priceById, users, empName };
+}
+
+/** Planned revenue (incl. VAT) for every order in a calendar month. */
+async function monthRevenue(year: number, monthIdx0: number): Promise<number> {
+  const from = new Date(Date.UTC(year, monthIdx0, 1));
+  const to = new Date(Date.UTC(year, monthIdx0 + 1, 1));
+  const orders = await prisma.order.findMany({
+    where: { plannedAt: { gte: from, lt: to } },
+    include: { tasks: true },
+  });
+  return orders.reduce((sum, o) => sum + o.tasks.reduce((a, t) => a + t.price, 0), 0);
+}
+
+export async function getCalendarWeek(weekMonday: string): Promise<CalendarWeek> {
+  const { start, plan, priceById, users } = await buildWeekPlan(weekMonday);
+  const year = start.getUTCFullYear();
+
+  const dayRevenue = Array<number>(7).fill(0);
+  const dayDrive = Array<number>(7).fill(0);
+  for (const d of plan.days) {
+    dayDrive[d.weekday] = d.driveMin;
+    for (const s of d.stops) dayRevenue[d.weekday] += priceById.get(s.job.id) ?? 0;
+  }
+
+  const events: CalEvent[] = plan.days.flatMap((d) =>
+    d.stops.map((s, i) => ({
+      id: s.job.id, day: d.weekday, start: s.startMin / 60, end: s.endMin / 60,
+      postal: s.job.postal, customer: s.job.customer, category: s.job.category,
+      status: "afventer" as CalStatus, type: sourceType(s.job.source),
+      lock: (i === 0 ? "fastlaast" : "delvist") as LockState, employeeId: d.employeeId,
+    }))
+  );
+
+  const days: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
+    const dt = new Date(start.getTime() + i * 864e5);
+    return { label: DA_DAYS[i], date: String(dt.getUTCDate()), revenue: dayRevenue[i], driving: dayDrive[i] ? fmtDrive(dayDrive[i]) : undefined };
+  });
+
+  const monMonth = start.getUTCMonth();
+  const sunMonth = new Date(start.getTime() + 6 * 864e5).getUTCMonth();
+  const weekLabel = cap(MON_SHORT[monMonth]) + (monMonth !== sunMonth ? ` – ${cap(MON_SHORT[sunMonth])}` : "") + ` ${year}`;
+  const weekNo = isoWeek(weekMonday);
+  const week = dayRevenue.reduce((a, b) => a + b, 0);
+  const month = await monthRevenue(year, monMonth);
+  const employees: Employee[] = users.map((u) => ({
+    id: u.id, name: `${u.firstName} ${u.lastName}`, color: u.calendarColor ?? "#a4d5ee", active: u.activeCalendar,
+  }));
+
+  return {
+    weekNo, weekLabel, monday: weekMonday, employees, days, events,
+    planned: { weekLabel: `Uge ${weekNo}`, week, monthLabel: MONTHS[monMonth], month },
+  };
+}
+
+export async function getDayProgram(dateISO: string): Promise<DayProgram> {
+  const date = new Date(`${dateISO}T00:00:00Z`);
+  const weekdayIdx = (date.getUTCDay() + 6) % 7; // 0 = Monday
+  const mondayISO = ymd(new Date(date.getTime() - weekdayIdx * 864e5));
+  const { plan, priceById, empName } = await buildWeekPlan(mondayISO);
+  const dayPlan = plan.days.find((d) => d.weekday === weekdayIdx);
+
+  const stops: DayStop[] = (dayPlan?.stops ?? []).map((s) => ({
+    from: fmtTime(s.startMin), to: fmtTime(s.endMin),
+    address: s.job.address, customer: s.job.customer,
+    price: priceById.get(s.job.id) ?? 0,
+    employee: empName.get(dayPlan!.employeeId) ?? "Ingen",
+    source: s.job.source,
+  }));
+
+  let revenueWeek = 0;
+  for (const d of plan.days) for (const s of d.stops) revenueWeek += priceById.get(s.job.id) ?? 0;
+
+  return {
+    heading: `${date.getUTCDate()}. ${MON_SHORT[date.getUTCMonth()]} ${date.getUTCFullYear()}`,
+    relative: `${WEEKDAYS_FULL[weekdayIdx]} (uge ${isoWeek(mondayISO)})`,
+    revenueDay: stops.reduce((a, s) => a + s.price, 0),
+    revenueWeek,
+    revenueMonth: await monthRevenue(date.getUTCFullYear(), date.getUTCMonth()),
+    driving: fmtDrive(dayPlan?.driveMin ?? 0),
+    stops,
+  };
 }

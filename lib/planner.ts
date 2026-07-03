@@ -117,13 +117,4 @@ export function planWeek(jobs: Job[], weekMonday: string, employees: Employee[] 
   return { weekMonday, days, unplanned: remaining };
 }
 
-// ---- convenience: sample jobs for the current demo week ----
-export const DEMO_JOBS: Job[] = [
-  { id: 1969863, contactId: 201482, customer: "McDonald's Stilling", address: "Ørnedvej 4, 8660 Skanderborg", postal: "8660 Skanderborg", category: "Vinduespudsning", durationMin: 60, source: "Abo. #235844" },
-  { id: 1969944, contactId: 201455, customer: "Nordic Sport Invest 2", address: "Hospitalsgade 6, 8700 Horsens", postal: "8700 Horsens", category: "Viceværtservice", durationMin: 45, source: "Abo. #235837" },
-  { id: 1969951, contactId: 201391, customer: "Bilhuset A/S", address: "Vejlevej 120, 8700 Horsens", postal: "8700 Horsens", category: "Rentvandsvask", durationMin: 30, source: "Manuel ordre" },
-  { id: 1969960, contactId: 201310, customer: "Aarhus Storkøkken", address: "Mejlgade 12, 8000 Aarhus C", postal: "8000 Aarhus C", category: "Vinduespudsning", durationMin: 90, source: "Abo. #235801" },
-  { id: 1969973, contactId: 201288, customer: "Odder Boghandel", address: "Rosensgade 20, 8300 Odder", postal: "8300 Odder", category: "Overfladerens", durationMin: 40, source: "Online ordre" },
-];
-
 export const fmtTime = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
