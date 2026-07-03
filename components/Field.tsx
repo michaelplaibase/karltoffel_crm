@@ -1,7 +1,41 @@
 import type { SField } from "@/lib/settings-config";
 
-export function Control({ f }: { f: SField }) {
+// Renders one settings field. Two modes:
+//  • display-only (no `name`) — used by the Funktioner pages that just show a config.
+//  • editable (a `name` is passed) — used by SettingsForm; renders real inputs
+//    whose values round-trip through the settings store (values arrive as string[]).
+export function Control({ f, name, value }: { f: SField; name?: string; value?: string[] }) {
   const help = f.help ? <small className="form-text">{f.help}</small> : null;
+  const v0 = value?.[0];
+
+  if (name) {
+    switch (f.t) {
+      case "textarea":
+        return <><textarea name={name} className="form-control" rows={5} defaultValue={v0 ?? f.val ?? ""} />{help}</>;
+      case "select":
+        return <><select name={name} className="form-control form-control-sm" defaultValue={v0 ?? f.val ?? ""}>{(f.opts ?? []).map((o, i) => <option key={i}>{o}</option>)}</select>{help}</>;
+      case "checks":
+        return <><div style={{ paddingTop: 4 }}>{(f.opts ?? []).map((o, i) => {
+          const on = value ? value.includes(o) : (Array.isArray(f.on) ? f.on.includes(i) : false);
+          return <label className="form-check-inline" key={i}><input type="checkbox" name={name} value={o} defaultChecked={on} /> {o}</label>;
+        })}</div>{help}</>;
+      case "radio":
+        return <><div className="radio">{(f.opts ?? []).map((o, i) => {
+          const on = value ? value[0] === o : (f.on === i);
+          return <label className={`rad${on ? " on" : ""}`} key={i} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}><input type="radio" name={name} value={o} defaultChecked={on} /> {o}</label>;
+        })}</div>{help}</>;
+      case "toggle": {
+        const on = value ? value[value.length - 1] === "Ja" : (f.on === 1);
+        return <><label style={{ display: "inline-flex", alignItems: "center", gap: 9, paddingTop: 4, fontWeight: 300 }}><input type="hidden" name={name} value="Nej" /><input type="checkbox" name={name} value="Ja" defaultChecked={on} /> Ja</label>{help}</>;
+      }
+      case "color":
+        return <><div style={{ display: "flex", alignItems: "center", gap: 10 }}><input type="color" name={name} defaultValue={v0 ?? f.val ?? "#000000"} style={{ width: 54, height: 30, padding: 0, border: "1px solid var(--card-border)" }} /></div>{help}</>;
+      default: // text / number / date
+        return <><input name={name} className="form-control form-control-sm" type={f.t === "number" ? "number" : f.t === "date" ? "date" : "text"} defaultValue={v0 ?? f.val ?? ""} />{help}</>;
+    }
+  }
+
+  // Display-only rendering.
   switch (f.t) {
     case "buttons":
       return <><div className="row-actions">{(f.btns ?? []).map(([txt, v], i) => <button key={i} className={`btn btn-${v} btn-sm`} type="button">{txt}</button>)}</div>{help}</>;
@@ -27,7 +61,7 @@ export function Control({ f }: { f: SField }) {
   }
 }
 
-export function Field({ f }: { f: SField }) {
+export function Field({ f, name, value }: { f: SField; name?: string; value?: string[] }) {
   if (f.t === "note") return <div className="help-note" style={{ marginBottom: 16 }}>{f.val}</div>;
   if (f.t === "subtable") {
     return (
@@ -49,7 +83,7 @@ export function Field({ f }: { f: SField }) {
   return (
     <div className="f2">
       <label className="col-label">{f.l}</label>
-      <div><Control f={f} /></div>
+      <div><Control f={f} name={name} value={value} /></div>
     </div>
   );
 }

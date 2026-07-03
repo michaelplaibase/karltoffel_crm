@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import type { Template } from "@/lib/templates-config";
+import type { SaveState } from "@/app/actions/settings";
 
-export default function TemplateEditor({ t }: { t: Template }) {
+type TemplateValues = { subjects?: string[]; body?: string; smsSender?: string };
+
+export default function TemplateEditor({
+  t, action, values,
+}: {
+  t: Template;
+  action: (state: SaveState, formData: FormData) => Promise<SaveState>;
+  values: TemplateValues;
+}) {
   const [showVars, setShowVars] = useState(false);
+  const [state, formAction, pending] = useActionState(action, {});
 
   if (!t.editable) {
     return (
@@ -30,51 +40,56 @@ export default function TemplateEditor({ t }: { t: Template }) {
           <h4 className="section-title">{t.heading}</h4>
           <p className="muted" style={{ marginBottom: 22 }}>{t.intro}</p>
 
-          {t.subjects.map((s, i) => (
-            <div className="f2" key={i}>
-              <label className="col-label">{s.label}</label>
+          <form action={formAction}>
+            {t.subjects.map((s, i) => (
+              <div className="f2" key={i}>
+                <label className="col-label">{s.label}</label>
+                <div>
+                  <input name="subject" className="form-control" defaultValue={values.subjects?.[i] ?? s.val} />
+                  <small className="form-text">Emnet på e-mailen. Maks {t.maxSubject ?? 50} karakterer.</small>
+                </div>
+              </div>
+            ))}
+
+            <div className="f2">
+              <label className="col-label">
+                Besked{" "}
+                <a onClick={() => setShowVars(true)} style={{ cursor: "pointer" }}>(Se liste over variable felter, du kan anvende)</a>
+              </label>
               <div>
-                <input className="form-control" defaultValue={s.val} />
-                <small className="form-text">Emnet på e-mailen. Maks {t.maxSubject ?? 50} karakterer.</small>
+                <textarea name="body" className="form-control" rows={13} defaultValue={values.body ?? t.body} />
+                <small className="form-text">Beskeden, som sendes til kunden.</small>
               </div>
             </div>
-          ))}
 
-          <div className="f2">
-            <label className="col-label">
-              Besked{" "}
-              <a onClick={() => setShowVars(true)} style={{ cursor: "pointer" }}>(Se liste over variable felter, du kan anvende)</a>
-            </label>
-            <div>
-              <textarea className="form-control" rows={13} defaultValue={t.body} />
-              <small className="form-text">Beskeden, som sendes til kunden.</small>
-            </div>
-          </div>
-
-          <div className="f2">
-            <label className="col-label">Afsender på SMS</label>
-            <div>
-              <input className="form-control" defaultValue={t.smsSender ?? "Service SMS"} />
-              <small className="form-text">Kan være tekst eller dit mobilnummer. Maks 11 karakterer.</small>
-            </div>
-          </div>
-
-          <div className="f2">
-            <label className="col-label">Send en test</label>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                <input className="form-control" placeholder="Test e-mail" />
-                <button className="btn btn-light">Send test e-mail</button>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                <input className="form-control" placeholder="Test SMS" />
-                <button className="btn btn-light">Send test SMS</button>
+            <div className="f2">
+              <label className="col-label">Afsender på SMS</label>
+              <div>
+                <input name="smsSender" className="form-control" defaultValue={values.smsSender ?? t.smsSender ?? "Service SMS"} />
+                <small className="form-text">Kan være tekst eller dit mobilnummer. Maks 11 karakterer.</small>
               </div>
             </div>
-          </div>
 
-          <hr className="section-hr" />
-          <button className="btn btn-primary">Gem alle ændringer</button>
+            <div className="f2">
+              <label className="col-label">Send en test</label>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                  <input className="form-control" placeholder="Test e-mail" />
+                  <button type="button" className="btn btn-light">Send test e-mail</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                  <input className="form-control" placeholder="Test SMS" />
+                  <button type="button" className="btn btn-light">Send test SMS</button>
+                </div>
+              </div>
+            </div>
+
+            <hr className="section-hr" />
+            <div className="row-actions" style={{ alignItems: "center", gap: 12 }}>
+              <button type="submit" className="btn btn-primary" disabled={pending}>{pending ? "Gemmer…" : "Gem alle ændringer"}</button>
+              {state.saved ? <span style={{ color: "var(--success)", fontSize: 13 }}>✓ Gemt</span> : null}
+            </div>
+          </form>
         </div>
       </div>
 
@@ -91,7 +106,7 @@ export default function TemplateEditor({ t }: { t: Template }) {
                   </div>
                 ))}
               </div>
-              <div className="savebar"><button className="btn btn-light" onClick={() => setShowVars(false)}>Tilbage</button></div>
+              <div className="savebar"><button type="button" className="btn btn-light" onClick={() => setShowVars(false)}>Tilbage</button></div>
             </div>
           </div>
         </div>

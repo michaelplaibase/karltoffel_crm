@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { TOP_NAV } from "@/lib/nav";
 import { SETTINGS_PAGES } from "@/lib/settings-config";
+import { getSettingsValues } from "@/lib/settings-store";
+import { saveSettings } from "@/app/actions/settings";
 import SettingsForm from "@/components/SettingsForm";
 
 function labelFor(path: string): { label: string; en: string } | null {
@@ -18,8 +20,12 @@ export default async function CatchAll({
   const { slug } = await params;
   const path = "/" + (slug ?? []).join("/");
 
-  // Settings pages are data-driven from lib/settings-config.
-  if (SETTINGS_PAGES[path]) return <SettingsForm page={SETTINGS_PAGES[path]} />;
+  // Settings pages are data-driven from lib/settings-config, and persist into
+  // the settings store (Company.settings JSON).
+  if (SETTINGS_PAGES[path]) {
+    const values = await getSettingsValues(path);
+    return <SettingsForm page={SETTINGS_PAGES[path]} values={values} action={saveSettings.bind(null, path)} />;
+  }
 
   const meta = labelFor(path);
   return (

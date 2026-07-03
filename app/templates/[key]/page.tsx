@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { TEMPLATES } from "@/lib/templates-config";
+import { getTemplateValues } from "@/lib/settings-store";
+import { saveTemplate } from "@/app/actions/settings";
 import TemplateEditor from "@/components/TemplateEditor";
 
 export default async function TemplatePage({
@@ -10,5 +12,6 @@ export default async function TemplatePage({
   const { key } = await params;
   const t = TEMPLATES.find((x) => x.key === key);
   if (!t) notFound();
-  return <TemplateEditor t={t} />;
+  const values = await getTemplateValues(key);
+  return <TemplateEditor t={t} action={saveTemplate.bind(null, key)} values={values} />;
 }
