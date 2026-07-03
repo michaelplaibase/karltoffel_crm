@@ -282,3 +282,23 @@ select.form-control-sm { background-position: right 10px center; padding-right: 
 .step.on .n { background: var(--primary); color: #fff; }
 .tier { display: grid; grid-template-columns: 1fr 90px; gap: 10px; align-items: center; margin-bottom: 8px; font-size: 13px; }
 .tier .form-control { max-width: 90px; }
+
+/* KPI + charts (reporting) */
+.kpigrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.kpi { border: 1px solid var(--card-border); border-radius: 10px; padding: 18px; box-shadow: var(--shadow-card); background: #fff; }
+.kpi .k { font-family: var(--font-head); font-size: 31.248px; font-weight: 500; color: var(--heading); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.kpi .t { font-weight: 500; font-size: 14px; margin-top: 6px; color: var(--heading); }
+.kpi .s { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.report-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 26px 0 14px; }
+.report-head h4 { margin: 0; }
+.report-head:first-of-type { margin-top: 8px; }
+.chartcard { border: 1px solid var(--card-border); border-radius: 10px; box-shadow: var(--shadow-card); padding: 18px 20px; margin-top: 18px; background: #fff; }
+.chartcard h3 { font-family: var(--font-head); font-size: 20px; font-weight: 400; margin: 0 0 6px; }
+.chart-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
+.bars { display: flex; align-items: flex-end; gap: 7px; height: 170px; margin-top: 16px; padding-top: 6px; border-bottom: 1px solid var(--table-border); }
+.bars .bar { flex: 1; background: linear-gradient(#6ec0e5, var(--primary)); border-radius: 4px 4px 0 0; min-width: 6px; }
+.axis-label { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.series-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.series-legend .dot2 { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+.map-box { height: 260px; border: 1px dashed var(--table-border); border-radius: 8px; margin-top: 12px; display: grid; place-items: center; color: var(--faint); background: #f7fafc; }
