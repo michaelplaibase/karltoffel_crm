@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { TOP_NAV } from "@/lib/nav";
+import { SETTINGS_PAGES } from "@/lib/settings-config";
+import SettingsForm from "@/components/SettingsForm";
 
 function labelFor(path: string): { label: string; en: string } | null {
   for (const menu of TOP_NAV) {
@@ -8,32 +10,32 @@ function labelFor(path: string): { label: string; en: string } | null {
   return null;
 }
 
-export default async function ComingSoon({
+export default async function CatchAll({
   params,
 }: {
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
   const path = "/" + (slug ?? []).join("/");
-  const meta = labelFor(path);
 
+  // Settings pages are data-driven from lib/settings-config.
+  if (SETTINGS_PAGES[path]) return <SettingsForm page={SETTINGS_PAGES[path]} />;
+
+  const meta = labelFor(path);
   return (
     <div className="container-1140">
       <h1 className="page-title">{meta?.label ?? "Under udvikling"}</h1>
-      <p className="page-desc">
-        {meta ? `${meta.en} · ${path}` : path}
-      </p>
+      <p className="page-desc">{meta ? `${meta.en} · ${path}` : path}</p>
       <div className="card">
         <div className="card-body">
           <div className="help-note">
-            Denne side er en del af en senere fase i opbygningen. Fase 1 dækker <b>Kartotek</b> (Kunder,
-            Abonnementer, Ordrer). Se det fulde, navigerbare blueprint over alle undersider i{" "}
+            Denne side bygges i en senere fase. Se det fulde, navigerbare blueprint over alle undersider i{" "}
             <code>docs/fenster-blueprint/blueprint.html</code>.
           </div>
           <div className="row-actions" style={{ marginTop: 18 }}>
-            <Link href="/customers" className="btn btn-primary">Gå til Kunder</Link>
-            <Link href="/subscriptions" className="btn btn-outline-secondary">Abonnementer</Link>
-            <Link href="/orders" className="btn btn-outline-secondary">Ordrer</Link>
+            <Link href="/calendar" className="btn btn-primary">Kalender</Link>
+            <Link href="/customers" className="btn btn-outline-secondary">Kunder</Link>
+            <Link href="/settings" className="btn btn-outline-secondary">Indstillinger</Link>
           </div>
         </div>
       </div>
