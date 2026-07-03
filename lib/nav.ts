@@ -1,6 +1,7 @@
 // Top-navigation structure of the portal: seven menus, each a dropdown of routes.
 // Mirrors the portal's information architecture (labels in Danish, English hints).
-export type NavItem = { label: string; en: string; href: string; gate?: string };
+// This is an internal-use clone: no Fenster plan tiers, so nothing is gated.
+export type NavItem = { label: string; en: string; href: string };
 export type NavMenu = { label: string; en: string; items: NavItem[] };
 
 export const TOP_NAV: NavMenu[] = [
@@ -25,7 +26,7 @@ export const TOP_NAV: NavMenu[] = [
     items: [
       { label: "Gruppebeskeder", en: "Group messages", href: "/group-messages" },
       { label: "Ferieplanlægning", en: "Holiday planning", href: "/holidays" },
-      { label: "Abonnementsoptimering", en: "Subscription optimization", href: "/optimization", gate: "Premium" },
+      { label: "Abonnementsoptimering", en: "Subscription optimization", href: "/optimization" },
       { label: "Prisjustering", en: "Price adjustment", href: "/price-adjustments" },
     ],
   },

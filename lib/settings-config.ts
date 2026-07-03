@@ -5,7 +5,6 @@ export type SField = {
   opts?: string[];       // options for select/checks/radio
   on?: number | number[];// selected radio index, or checked checks indices
   help?: string;         // grey help text (Danish)
-  gate?: string;         // plan gate, e.g. "Pro" / "Premium"
   ro?: boolean;          // read-only
   btns?: [string, string][]; // [label, variant] pairs for t:"buttons" (variant: "primary"|"outline-primary"|"light"|"danger"|"outline-secondary"|"sub")
   cols?: string[];       // column headers for t:"subtable"
@@ -13,7 +12,7 @@ export type SField = {
   empty?: string;        // empty-state text for t:"subtable"
 };
 export type SSection = { h?: string; fields: SField[] };
-export type SPage = { title: string; route: string; purpose?: string; gate?: string; saveLabel?: string; noSave?: boolean; sections: SSection[] };
+export type SPage = { title: string; route: string; purpose?: string; saveLabel?: string; noSave?: boolean; sections: SSection[] };
 export const SETTINGS_PAGES: Record<string, SPage> = {
   "/settings": {
     title: "Indstillinger",
@@ -31,14 +30,14 @@ export const SETTINGS_PAGES: Record<string, SPage> = {
       {
         h: "Diverse",
         fields: [
-          { t: "buttons", l: "Godkend brug af SMS", btns: [["Læs og godkend", "outline-primary"]], help: "Godkend at Fenster må afsende SMS'er og at du bliver opkrævet for dit forbrug på din Fenster faktura." },
+          { t: "note", val: "SMS-afsendelse er aktiveret for kontoen. Alle funktioner er tilgængelige — der kræves ikke noget abonnement." },
         ],
       },
       {
         h: "Notifikationer",
         fields: [
           { t: "note", val: "Du kan sende notifikationer til dine kunder før og efter levering af din service. Indstillingerne gælder for alle ordretyper, med undtagelse af online ordrer, hvor der ikke sendes notifikation før og efter levering. Du kan overskrive indstillingerne på det enkelte kundeabonnement... Notifikationer sendes til kontakten på leveringsadressen." },
-          { t: "checks", l: "Send notifikationer via", opts: ["SMS", "E-mail"], help: "Brugen af SMS er ikke godkendt endnu. Gå til Indstillinger → Generelt og godkend brug af SMS" },
+          { t: "checks", l: "Send notifikationer via", opts: ["SMS", "E-mail"], help: "Vælg om notifikationer sendes via SMS og/eller e-mail." },
           { t: "select", l: "Send notifikation før levering, når 'Kunden skal være tilstede'", opts: ["Nej, send ikke", "Ja, med dato", "Ja, med dato og tidsinterval (-1t → +2t)", "Ja, med dato og tidsinterval (-1t → +1t)", "Ja, med dato og klokkeslæt"], val: "Nej, send ikke", help: "Vælg 'Nej', hvis du ikke vil sende notifikation før levering. Alternativt, vælg hvordan du vil oplyse om leveringstidspunkt, når opgaverne kræver, at kunden skal være tilstede." },
           { t: "number", l: "Vælg antal dage notifikationen skal sendes før levering, når en eller flere opgaver på ordren kræver [tilstedeværelse]", val: "3", help: "Skriv hvor mange dage før leveringstidspunktet, at kunden skal modtage en notifikation..." },
           { t: "select", l: "Send notifikation før levering, når 'Kunden ikke behøver at være tilstede'", opts: ["Nej, send ikke", "Ja, med dato", "Ja, med dato og tidsinterval (-1t → +2t)", "Ja, med dato og tidsinterval (-1t → +1t)", "Ja, med dato og klokkeslæt"], val: "Nej, send ikke", help: "Vælg 'Nej', hvis du ikke vil sende notifikation før levering. Alternativt, vælg hvordan du vil oplyse om leveringstidspunkt, når opgaverne kræver, at kunden skal være tilstede." },
@@ -182,7 +181,7 @@ export const SETTINGS_PAGES: Record<string, SPage> = {
       {
         h: "Ny bruger",
         fields: [
-          { t: "note", val: "Prisen for en ekstra bruger er 199 kr/mdr., som opkræves månedligt med mindre andet er aftalt. Husk at indstille arbejdstider for brugeren, når denne er oprettet. Klik på 'Gem alle ændringer' for at oprette brugeren." },
+          { t: "note", val: "Du kan oprette lige så mange brugere, du vil — der er ingen begrænsning og ingen ekstra omkostning. Husk at indstille arbejdstider for brugeren, når denne er oprettet. Klik på 'Gem alle ændringer' for at oprette brugeren." },
           { t: "buttons", btns: [["Opret ny bruger", "primary"]] },
         ],
       },
@@ -242,7 +241,7 @@ export const SETTINGS_PAGES: Record<string, SPage> = {
         h: "Kristian Klercke",
         fields: [
           { t: "checks", opts: ["Udelad kørsel før første ordre på dagen", "Udelad kørsel efter sidste ordre på dagen", "Tilstræb at starte dagen længst væk fra hjemmeadressen"], on: [0, 1, 2], help: "Vælg dette, hvis du vil undgå, at Fenster planlægger kørsel til første ordre / kørsel hjem fra sidste ordre inden for arbejdstiden, eller hvis du ønsker at bruge de tidlige morgentimer på transport." },
-          { t: "select", l: "Tilladte opgavekategorier", gate: "Pro", val: "Alle", opts: ["Vinduespudsning", "Rentvandsvask", "Tagrenderens", "Overfladerens", "Algebehandling", "Overfladebeskyttelse", "Privatrengøring", "Ejendomsrengøring", "Viceværtservice", "Grøn service", "Ukrudtsbekæmpelse", "Skadedyrsbekæmpelse", "Bilpleje", "Administrativt", "Andet"], help: "Vælg hvilke opgavekategorier, som medarbejderen kan håndtere. For at en ordre kan planlægges i en medarbejders kalender, skal medarbejderen kunne håndtere alle kategorier på ordren. Hvis du fastgør en ordre eller et abonnement til en bestemt medarbejder, så vil ordren blive planlagt til denne medarbejder uagtet de tilladte opgavekategorier." },
+          { t: "select", l: "Tilladte opgavekategorier", val: "Alle", opts: ["Vinduespudsning", "Rentvandsvask", "Tagrenderens", "Overfladerens", "Algebehandling", "Overfladebeskyttelse", "Privatrengøring", "Ejendomsrengøring", "Viceværtservice", "Grøn service", "Ukrudtsbekæmpelse", "Skadedyrsbekæmpelse", "Bilpleje", "Administrativt", "Andet"], help: "Vælg hvilke opgavekategorier, som medarbejderen kan håndtere. For at en ordre kan planlægges i en medarbejders kalender, skal medarbejderen kunne håndtere alle kategorier på ordren. Hvis du fastgør en ordre eller et abonnement til en bestemt medarbejder, så vil ordren blive planlagt til denne medarbejder uagtet de tilladte opgavekategorier." },
         ],
       },
     ],

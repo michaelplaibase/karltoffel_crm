@@ -7,7 +7,7 @@ export default function OptimizationPage() {
     <div className="container-1140" style={{ maxWidth: 900 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 className="page-title" style={{ margin: 0 }}>{O.title}</h1>
-        <span className="badge badge-soft-warning">Kræver {O.gate}</span>
+        <span className="badge badge-soft-success">Aktiveret</span>
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
@@ -20,9 +20,12 @@ export default function OptimizationPage() {
       <div className="card">
         <div className="card-body">
           <h4 className="section-title">Optimeringspotentiale</h4>
-          <div className="help-note" style={{ borderLeftColor: "var(--warning)", background: "#fff3dc", color: "#7a5b12" }}>
-            <b>{O.disabledTitle}</b>
-            <div style={{ marginTop: 6 }}>{O.disabledMsg}</div>
+          <div className="help-note">
+            <b>{O.availableTitle}</b>
+            <div style={{ marginTop: 6 }}>{O.availableMsg}</div>
+          </div>
+          <div className="row-actions" style={{ marginTop: 12 }}>
+            <button className="btn btn-primary" type="button">Kør optimering</button>
           </div>
           <div className="help-note" style={{ marginTop: 12 }}>{O.dialogNote}</div>
         </div>

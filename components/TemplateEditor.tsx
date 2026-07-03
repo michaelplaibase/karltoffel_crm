@@ -54,8 +54,8 @@ export default function TemplateEditor({ t }: { t: Template }) {
           <div className="f2">
             <label className="col-label">Afsender på SMS</label>
             <div>
-              <input className="form-control" defaultValue={t.smsSender ?? "Service SMS"} readOnly />
-              <small className="form-text">Kan være tekst eller dit mobilnummer. Maks 11 karakterer. Kontakt Fenster Support for at få feltet ændret (kræver Premium).</small>
+              <input className="form-control" defaultValue={t.smsSender ?? "Service SMS"} />
+              <small className="form-text">Kan være tekst eller dit mobilnummer. Maks 11 karakterer.</small>
             </div>
           </div>
 
@@ -68,7 +68,7 @@ export default function TemplateEditor({ t }: { t: Template }) {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
                 <input className="form-control" placeholder="Test SMS" />
-                <button className="btn btn-light" disabled title="Brugen af SMS er ikke godkendt endnu.">Send test SMS</button>
+                <button className="btn btn-light">Send test SMS</button>
               </div>
             </div>
           </div>

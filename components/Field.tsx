@@ -48,10 +48,7 @@ export function Field({ f }: { f: SField }) {
   }
   return (
     <div className="f2">
-      <label className="col-label">
-        {f.l}
-        {f.gate ? <span className="badge badge-soft-warning" style={{ marginLeft: 8, fontSize: 10, padding: "2px 7px" }}>Kræver {f.gate}</span> : null}
-      </label>
+      <label className="col-label">{f.l}</label>
       <div><Control f={f} /></div>
     </div>
   );

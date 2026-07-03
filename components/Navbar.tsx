@@ -61,7 +61,7 @@ export default function Navbar() {
                   {menu.items.map((it) => (
                     <Link key={it.href} href={it.href} className="dropdown-item">
                       <span>{it.label}</span>
-                      {it.gate ? <span className="gate">{it.gate}</span> : <span className="en">{it.en}</span>}
+                      <span className="en">{it.en}</span>
                     </Link>
                   ))}
                 </div>

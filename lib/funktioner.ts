@@ -66,8 +66,7 @@ export const GROUP_MESSAGES: {
       t: "text",
       l: "Afsender på SMS",
       val: "Service SMS",
-      ro: true,
-      help: "Afsender på SMS. Kan være tekst eller dit mobilnummer. Maks 11 karakterer. Kontakt Fenster Support for at få feltet ændret (kræver Fenster Premium abonnement)",
+      help: "Afsender på SMS. Kan være tekst eller dit mobilnummer. Maks 11 karakterer.",
     },
     {
       t: "buttons",
@@ -124,20 +123,19 @@ export const HOLIDAYS: {
 };
 
 export const OPTIMIZATION: {
-  title: string; gate: string; intro: string[];
-  disabledTitle: string; disabledMsg: string; dialogNote: string;
+  title: string; intro: string[];
+  availableTitle: string; availableMsg: string; dialogNote: string;
 } = {
   title: "Abonnementsoptimering",
-  gate: "Premium",
   intro: [
     "Abonnementsoptimering er en avanceret funktion, som kan hjælpe med at optimere din kørsel ved at flytte udvalgte abonnementer, dvs. ved at forskubbe ugerytmen.",
     "Venstre kort viser den nuværende ugerytmer for alle dine abonnementer, mens det højre kort viser ugerytmerne efter optimering.",
     "Optimeringen tager også højde for fordeling af arbejdestid på tværs af uger, således at arbejdstiden jævnes ud.",
     "Fenster foreslår flytning af op til 10 abonnementer ad gangen, hvor du skal bekræfte for hvert abonnement, om det må flyttes. Når flytningen er gennemført sender Fenster en besked til kunden med info om ændringen. Du kan tilpasse beskeden på denne side, hvis du ønsker det.",
   ],
-  disabledTitle: "Abonnementsoptimering er deaktiveret",
-  disabledMsg:
-    "Det kræver min. 100 abonnementer at udføre abonnementsoptimering. Der er pt. 5 abonnementer i kartoteket.",
+  availableTitle: "Abonnementsoptimering er klar",
+  availableMsg:
+    "Funktionen er aktiveret. Kør en optimering for at få forslag til flytning af abonnementer, der reducerer din samlede kørsel og jævner arbejdstiden ud over ugerne.",
   dialogNote: `Dialog "Bekræft flytning af abonnementer": vælg hvordan kunderne informeres om ændringen — "Både SMS og e-mail", "Kun som SMS", "Kun som e-mail", "Som e-mail, hvis kunden har en email-adr., ellers som SMS" eller "Giv ikke besked". Advarsel: "Denne handling kan ikke fortrydes." Knapper: "Luk" / "Flyt abonnementer".`,
 };
 
