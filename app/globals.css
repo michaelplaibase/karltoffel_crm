@@ -43,7 +43,11 @@ hr { border: 0; border-top: 1px solid rgba(0,0,0,.1); margin: 18px 0; }
 .container-1140 { max-width: var(--container); margin: 0 auto; padding: 24px; }
 .page-title { font-size: 48.832px; margin: 0 0 12px; }
 .page-desc { color: var(--muted); font-size: 15px; margin: 0 0 20px; }
-.section-title { font-size: 20px; margin: 0 0 14px; }
+.section-title { font-size: 25.008px; margin: 0 0 12px; }
+.section-hr { border: 0; border-top: 1px solid rgba(0,0,0,.1); margin: 40px 0; }
+.form-check-inline { display: inline-flex; align-items: center; gap: 5px; margin-right: 14px; font-size: 16px; font-weight: 300; color: var(--muted); }
+.form-check-inline input { width: 14px; height: 14px; margin: 0; accent-color: var(--primary); }
+.f2 > label.col-label { margin: 6px 0 0; color: var(--body-text); }
 
 /* ---------- navbar ---------- */
 .navbar { position: fixed; top: 0; left: 0; right: 0; height: var(--navbar-h); z-index: 1030;
