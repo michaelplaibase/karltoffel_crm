@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
 import { planWeek, fmtTime, isoWeek } from "@/lib/planner";
 import { getPlannerJobs } from "@/lib/queries";
+import { generateAllSubscriptionOrders } from "@/lib/recurrence";
 
 // GET /api/plan?week=YYYY-MM-DD
-// Runs the weekly auto-planner and returns the routed, time-slotted schedule.
-// A nightly cron hits this (see vercel.json) to re-plan every week.
+// The nightly cron (see vercel.json) hits this to (1) materialise upcoming
+// subscription orders and (2) re-plan the requested week. Generation is
+// idempotent, so extra calls are harmless.
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const week = url.searchParams.get("week") || "2026-06-29";
+  const generated = await generateAllSubscriptionOrders();
   const jobs = await getPlannerJobs(week);
   const plan = planWeek(jobs, week);
 
   return NextResponse.json({
     week: `Uge ${isoWeek(week)} (${plan.weekMonday})`,
+    generatedOrders: generated,
     plannedJobs: plan.days.reduce((n, d) => n + d.stops.length, 0),
     unplanned: plan.unplanned.map((j) => j.customer),
     days: plan.days.map((d) => ({

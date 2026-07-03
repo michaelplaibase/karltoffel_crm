@@ -4,10 +4,21 @@
 // the task-line formset (with interval + next-week per line).
 import { prisma } from "@/lib/db";
 import { categoryColor } from "@/lib/categories";
+import { generateForSubscriptionId, generateAllSubscriptionOrders } from "@/lib/recurrence";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export type SubscriptionState = { error?: string };
+
+/** Materialise upcoming orders for every active subscription (manual button). */
+export async function regenerateOrders(): Promise<void> {
+  await generateAllSubscriptionOrders();
+  revalidatePath("/subscriptions");
+  revalidatePath("/orders");
+  revalidatePath("/calendar");
+  revalidatePath("/daycalendar");
+  redirect("/orders");
+}
 
 function readTaskLines(formData: FormData) {
   const descs = formData.getAll("taskDescription").map(String);
@@ -74,7 +85,10 @@ export async function createSubscription(_prev: SubscriptionState, formData: For
       fixedEmployee: p.fixedEmployee, tasks: { create: taskCreate(p.lines) },
     },
   });
+  await generateForSubscriptionId(created.id); // materialise its upcoming orders
   revalidatePath("/subscriptions");
+  revalidatePath("/orders");
+  revalidatePath("/calendar");
   revalidatePath(`/customers/${p.contactId}`);
   redirect(`/subscriptions/${created.displayNo}`);
 }
@@ -99,8 +113,11 @@ export async function updateSubscription(pk: number, _prev: SubscriptionState, f
     }),
   ]);
 
+  await generateForSubscriptionId(pk); // fill any new upcoming weeks with the updated template
   const sub = await prisma.subscription.findUnique({ where: { id: pk }, select: { displayNo: true, contactId: true } });
   revalidatePath("/subscriptions");
+  revalidatePath("/orders");
+  revalidatePath("/calendar");
   if (sub) revalidatePath(`/customers/${sub.contactId}`);
   redirect(`/subscriptions/${sub?.displayNo ?? ""}`);
 }

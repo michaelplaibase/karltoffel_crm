@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSubscriptions, getContacts } from "@/lib/queries";
+import { regenerateOrders } from "@/app/actions/subscriptions";
 import { CatChip, CustomerCell, RowCaret, MapLink, money } from "@/components/ui";
 
 export const metadata = { title: "Abonnementer · Karltoffel" };
@@ -16,6 +17,9 @@ export default async function SubscriptionsPage() {
         <div className="card-body">
           <div className="toolbar">
             <Link href="/subscriptions/new" className="btn btn-outline-primary">Opret nyt abonnement</Link>
+            <form action={regenerateOrders} style={{ display: "inline" }}>
+              <button type="submit" className="btn btn-light" title="Opret kommende ordrer for alle abonnementer">Generér kommende ordrer</button>
+            </form>
             <div className="searchbar">
               <input className="form-control" placeholder="Abo. nr, dato, kundenavn, kundenr, email, tlf, vejnavn, husnr, postnr, opgave" />
               <button className="btn btn-light">Søg</button>
