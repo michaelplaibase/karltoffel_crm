@@ -13,7 +13,7 @@ const bodyHeight = (GRID_END - GRID_START) * HOUR;
 const hours = Array.from({ length: GRID_END - GRID_START }, (_, i) => GRID_START + i);
 const fmt = (h: number) => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
 
-export default function CalendarClient({ week }: { week: CalendarWeek }) {
+export default function CalendarClient({ week, nav }: { week: CalendarWeek; nav: { prev: string; next: string } }) {
   const { events, days, employees, planned, weekLabel, weekNo } = week;
   const [menu, setMenu] = useState<{ x: number; y: number; ev: CalEvent } | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -74,9 +74,9 @@ export default function CalendarClient({ week }: { week: CalendarWeek }) {
         {/* ---------- main ---------- */}
         <div className="cal-main">
           <div className="cal-toolbar">
-            <button className="calbtn">‹</button>
-            <button className="calbtn">Idag</button>
-            <button className="calbtn">›</button>
+            <Link href={`/calendar?week=${nav.prev}`} className="calbtn">‹</Link>
+            <Link href="/calendar" className="calbtn">Idag</Link>
+            <Link href={`/calendar?week=${nav.next}`} className="calbtn">›</Link>
             <span className="title">{weekLabel}</span>
             <span className="badge badge-soft-muted">UGE {weekNo}</span>
             <span className="spacer" />
