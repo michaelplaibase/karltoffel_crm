@@ -434,8 +434,10 @@ async function buildWeekPlan(weekMonday: string) {
   ]);
   const holiday = await isHolidayWeek(weekMonday);
   const priceById = new Map<number, number>();
+  const metaById = new Map<number, { subNo: number | null; status: string }>();
   const jobs: Job[] = holiday ? [] : orders.map((o) => {
     priceById.set(o.id, o.tasks.reduce((a, t) => a + t.price, 0));
+    metaById.set(o.id, { subNo: o.subscription?.displayNo ?? null, status: o.status });
     return {
       id: o.id, contactId: o.contactId, customer: o.contact.name,
       address: o.deliveryAddress, postal: postalOf(o.deliveryAddress),
@@ -449,7 +451,14 @@ async function buildWeekPlan(weekMonday: string) {
   });
   const plan = planWeek(jobs, weekMonday);
   const empName = new Map(users.map((u) => [u.id, `${u.firstName} ${u.lastName}`]));
-  return { start, plan, priceById, users, empName };
+  return { start, plan, priceById, metaById, users, empName };
+}
+
+/** Map a stored order status to the calendar's status class. */
+function calStatusOf(status: string): CalStatus {
+  if (status === "Afsluttet" || status === "Udført") return "afsluttet";
+  if (status.startsWith("Mislykk")) return "mislykket";
+  return "afventer";
 }
 
 /** Planned revenue (incl. VAT) for every order in a calendar month. */
@@ -464,7 +473,7 @@ async function monthRevenue(year: number, monthIdx0: number): Promise<number> {
 }
 
 export async function getCalendarWeek(weekMonday: string): Promise<CalendarWeek> {
-  const { start, plan, priceById, users } = await buildWeekPlan(weekMonday);
+  const { start, plan, priceById, metaById, users } = await buildWeekPlan(weekMonday);
   const year = start.getUTCFullYear();
 
   const dayRevenue = Array<number>(7).fill(0);
@@ -475,12 +484,16 @@ export async function getCalendarWeek(weekMonday: string): Promise<CalendarWeek>
   }
 
   const events: CalEvent[] = plan.days.flatMap((d) =>
-    d.stops.map((s) => ({
-      id: s.job.id, day: d.weekday, start: s.startMin / 60, end: s.endMin / 60,
-      postal: s.job.postal, customer: s.job.customer, category: s.job.category,
-      status: "afventer" as CalStatus, type: sourceType(s.job.source),
-      lock: (s.job.locked ? "fastlaast" : "frigjort") as LockState, employeeId: d.employeeId,
-    }))
+    d.stops.map((s) => {
+      const meta = metaById.get(s.job.id);
+      return {
+        id: s.job.id, day: d.weekday, start: s.startMin / 60, end: s.endMin / 60,
+        postal: s.job.postal, customer: s.job.customer, category: s.job.category,
+        status: calStatusOf(meta?.status ?? "Afventer levering"), type: sourceType(s.job.source),
+        lock: (s.job.locked ? "fastlaast" : "frigjort") as LockState, employeeId: d.employeeId,
+        contactId: s.job.contactId, subscriptionNo: meta?.subNo ?? null,
+      };
+    })
   );
 
   const days: WeekDay[] = Array.from({ length: 7 }, (_, i) => {

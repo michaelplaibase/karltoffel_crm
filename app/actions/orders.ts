@@ -66,8 +66,9 @@ const STATUS: Record<string, string> = {
   other: "Anden status",
 };
 
-/** Delete an order and its task lines. */
-export async function deleteOrder(orderId: number): Promise<void> {
+/** Delete an order and its task lines. `redirectTo=null` stays on the current
+ *  page (used by the calendar), otherwise navigates there (lists default to /orders). */
+export async function deleteOrder(orderId: number, redirectTo: string | null = "/orders"): Promise<void> {
   await prisma.$transaction([
     prisma.taskLine.deleteMany({ where: { orderId } }),
     prisma.order.delete({ where: { id: orderId } }),
@@ -75,7 +76,42 @@ export async function deleteOrder(orderId: number): Promise<void> {
   revalidatePath("/orders");
   revalidatePath("/calendar");
   revalidatePath("/daycalendar");
-  redirect("/orders");
+  if (redirectTo) redirect(redirectTo);
+}
+
+function revalidateSchedule(orderId?: number) {
+  revalidatePath("/orders");
+  revalidatePath("/calendar");
+  revalidatePath("/daycalendar");
+  if (orderId) revalidatePath(`/orders/${orderId}`);
+}
+
+/** Calendar context-menu "Lås helt op" (locked=false) / "Lås op, fastgør til
+ *  ugedag" (locked=true — the planner pins it to its weekday). */
+export async function setOrderLock(orderId: number, locked: boolean): Promise<void> {
+  await prisma.order.update({ where: { id: orderId }, data: { lockedFully: locked } });
+  revalidateSchedule();
+}
+
+/** Calendar "Flyt til anden uge …" — shift the order ±N weeks. When `unlock`,
+ *  also fully release it so the planner may re-slot it in the target week. */
+export async function moveOrderWeeks(orderId: number, weeks: number, unlock = false): Promise<void> {
+  const o = await prisma.order.findUnique({ where: { id: orderId }, select: { plannedAt: true } });
+  if (!o) return;
+  const plannedAt = new Date(o.plannedAt.getTime() + weeks * 7 * 864e5);
+  await prisma.order.update({
+    where: { id: orderId },
+    data: unlock ? { plannedAt, lockedFully: false } : { plannedAt },
+  });
+  revalidateSchedule();
+}
+
+/** Sidebar "Genplanlæg uge" — re-run the (deterministic, on-read) week planner
+ *  and refresh the calendar for the shown week. */
+export async function replanWeek(weekMonday: string): Promise<void> {
+  revalidatePath("/calendar");
+  revalidatePath("/daycalendar");
+  redirect(`/calendar?week=${weekMonday}`);
 }
 
 export async function completeOrder(orderId: number, _prev: CompleteOrderState, formData: FormData): Promise<CompleteOrderState> {

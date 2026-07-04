@@ -22,6 +22,8 @@ export type CalEvent = {
   type: CalType;
   lock: LockState;
   employeeId: number;
+  contactId: number;            // → /customers/{contactId}
+  subscriptionNo: number | null; // source "Abo. nr." → /subscriptions/{no} (null for manual/online)
 };
 
 export type WeekDay = { label: string; date: string; revenue: number; driving?: string };
