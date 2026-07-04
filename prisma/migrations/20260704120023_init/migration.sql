@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "Company" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "cvr" TEXT,
     "phone" TEXT,
@@ -8,14 +8,17 @@ CREATE TABLE "Company" (
     "planTier" TEXT NOT NULL DEFAULT 'Pro',
     "hourlyPrice" INTEGER NOT NULL DEFAULT 600,
     "settings" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Company_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "User" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "companyId" INTEGER NOT NULL,
     "username" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "email" TEXT,
@@ -28,12 +31,13 @@ CREATE TABLE "User" (
     "canEditOrders" BOOLEAN NOT NULL DEFAULT true,
     "canHandlePayment" BOOLEAN NOT NULL DEFAULT true,
     "canChangePaymentOption" BOOLEAN NOT NULL DEFAULT true,
-    CONSTRAINT "User_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Contact" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "companyId" INTEGER NOT NULL,
     "isCompany" BOOLEAN NOT NULL DEFAULT false,
     "companyName" TEXT,
@@ -52,13 +56,14 @@ CREATE TABLE "Contact" (
     "showDeliveryNameOnInvoice" BOOLEAN NOT NULL DEFAULT false,
     "skipInvoiceOverSms" BOOLEAN NOT NULL DEFAULT false,
     "invoiceChoicePreselect" TEXT NOT NULL DEFAULT 'default',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Contact_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Contact_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "StandardTask" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "companyId" INTEGER NOT NULL,
     "category" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -66,12 +71,13 @@ CREATE TABLE "StandardTask" (
     "customerPresenceRequired" BOOLEAN NOT NULL DEFAULT false,
     "isSystem" BOOLEAN NOT NULL DEFAULT false,
     "active" BOOLEAN NOT NULL DEFAULT true,
-    CONSTRAINT "StandardTask_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "StandardTask_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "TaskLine" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "category" TEXT NOT NULL,
     "letter" TEXT NOT NULL,
     "color" TEXT NOT NULL,
@@ -87,14 +93,13 @@ CREATE TABLE "TaskLine" (
     "fixedPriceId" INTEGER,
     "orderId" INTEGER,
     "sort" INTEGER NOT NULL DEFAULT 0,
-    CONSTRAINT "TaskLine_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "Subscription" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "TaskLine_fixedPriceId_fkey" FOREIGN KEY ("fixedPriceId") REFERENCES "FixedPriceAgreement" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "TaskLine_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+
+    CONSTRAINT "TaskLine_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Subscription" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "displayNo" INTEGER NOT NULL,
     "contactId" INTEGER NOT NULL,
     "deliveryAddress" TEXT NOT NULL,
@@ -106,25 +111,27 @@ CREATE TABLE "Subscription" (
     "fixedEmployee" TEXT NOT NULL DEFAULT 'Ingen',
     "notiOverride" BOOLEAN NOT NULL DEFAULT false,
     "active" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Subscription_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Subscription_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "FixedPriceAgreement" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "displayNo" INTEGER NOT NULL,
     "contactId" INTEGER NOT NULL,
     "deliveryAddress" TEXT NOT NULL,
-    CONSTRAINT "FixedPriceAgreement_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "FixedPriceAgreement_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Order" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "contactId" INTEGER NOT NULL,
     "deliveryAddress" TEXT NOT NULL,
-    "plannedAt" DATETIME NOT NULL,
+    "plannedAt" TIMESTAMP(3) NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'Afventer levering',
     "sourceType" TEXT NOT NULL,
     "subscriptionId" INTEGER,
@@ -133,26 +140,28 @@ CREATE TABLE "Order" (
     "lockedFully" BOOLEAN NOT NULL DEFAULT false,
     "comment" TEXT,
     "addressNote" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Order_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Order_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "Subscription" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "Order_fixedPriceId_fkey" FOREIGN KEY ("fixedPriceId") REFERENCES "FixedPriceAgreement" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "Order_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "DiscountCode" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "code" TEXT NOT NULL,
     "percent" INTEGER NOT NULL,
-    "expiresAt" DATETIME
+    "expiresAt" TIMESTAMP(3),
+
+    CONSTRAINT "DiscountCode_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "HolidayWeek" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "startWeek" DATETIME NOT NULL,
-    "endWeek" DATETIME NOT NULL
+    "id" SERIAL NOT NULL,
+    "startWeek" TIMESTAMP(3) NOT NULL,
+    "endWeek" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "HolidayWeek_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -163,3 +172,39 @@ CREATE UNIQUE INDEX "Subscription_displayNo_key" ON "Subscription"("displayNo");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "FixedPriceAgreement_displayNo_key" ON "FixedPriceAgreement"("displayNo");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Contact" ADD CONSTRAINT "Contact_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "StandardTask" ADD CONSTRAINT "StandardTask_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskLine" ADD CONSTRAINT "TaskLine_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "Subscription"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskLine" ADD CONSTRAINT "TaskLine_fixedPriceId_fkey" FOREIGN KEY ("fixedPriceId") REFERENCES "FixedPriceAgreement"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskLine" ADD CONSTRAINT "TaskLine_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FixedPriceAgreement" ADD CONSTRAINT "FixedPriceAgreement_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_subscriptionId_fkey" FOREIGN KEY ("subscriptionId") REFERENCES "Subscription"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_fixedPriceId_fkey" FOREIGN KEY ("fixedPriceId") REFERENCES "FixedPriceAgreement"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

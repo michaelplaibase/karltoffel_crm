@@ -93,9 +93,9 @@ function mapOrder(o: OrderRow): Order {
 /** Contact-field OR clause reused by every list that joins a contact. */
 function contactOr(q: string): Prisma.ContactWhereInput {
   return { OR: [
-    { name: { contains: q } }, { companyName: { contains: q } },
-    { email: { contains: q } }, { phone: { contains: q } },
-    { street: { contains: q } }, { city: { contains: q } }, { att: { contains: q } },
+    { name: { contains: q, mode: "insensitive" } }, { companyName: { contains: q, mode: "insensitive" } },
+    { email: { contains: q, mode: "insensitive" } }, { phone: { contains: q, mode: "insensitive" } },
+    { street: { contains: q, mode: "insensitive" } }, { city: { contains: q, mode: "insensitive" } }, { att: { contains: q, mode: "insensitive" } },
   ] };
 }
 /** Parse "#123, #124" style id lists (used by subscription→orders deep links). */
@@ -198,9 +198,9 @@ export async function getSubscriptions(q?: string): Promise<Subscription[]> {
   const num = term && /^\d+$/.test(term) ? Number(term) : null;
   const search: Prisma.SubscriptionWhereInput | undefined = term ? { OR: [
     ...(num ? [{ displayNo: num }] : []),
-    { deliveryAddress: { contains: term } }, { nextWeek: { contains: term } }, { baseInterval: { contains: term } },
+    { deliveryAddress: { contains: term, mode: "insensitive" } }, { nextWeek: { contains: term, mode: "insensitive" } }, { baseInterval: { contains: term, mode: "insensitive" } },
     { contact: contactOr(term) },
-    { tasks: { some: { description: { contains: term } } } },
+    { tasks: { some: { description: { contains: term, mode: "insensitive" } } } },
   ] } : undefined;
   const rows = await prisma.subscription.findMany({
     where: search ? { AND: [{ active: true }, search] } : { active: true },
@@ -272,9 +272,9 @@ export async function getFixedPrices(q?: string): Promise<FixedPrice[]> {
   const num = term && /^\d+$/.test(term) ? Number(term) : null;
   const where: Prisma.FixedPriceAgreementWhereInput | undefined = term ? { OR: [
     ...(num ? [{ displayNo: num }] : []),
-    { deliveryAddress: { contains: term } },
+    { deliveryAddress: { contains: term, mode: "insensitive" } },
     { contact: contactOr(term) },
-    { tasks: { some: { description: { contains: term } } } },
+    { tasks: { some: { description: { contains: term, mode: "insensitive" } } } },
   ] } : undefined;
   const rows = await prisma.fixedPriceAgreement.findMany({
     where,
@@ -320,9 +320,9 @@ export async function getOrders(q?: string): Promise<Order[]> {
     ? { id: { in: idList } }
     : term ? { OR: [
         ...(num ? [{ id: num }] : []),
-        { deliveryAddress: { contains: term } }, { status: { contains: term } },
+        { deliveryAddress: { contains: term, mode: "insensitive" } }, { status: { contains: term, mode: "insensitive" } },
         { contact: contactOr(term) },
-        { tasks: { some: { description: { contains: term } } } },
+        { tasks: { some: { description: { contains: term, mode: "insensitive" } } } },
       ] } : undefined;
   const rows = await prisma.order.findMany({ where, include: orderInclude, orderBy: { id: "desc" } });
   return rows.map(mapOrder);
@@ -388,7 +388,7 @@ export async function getStandardTasks(q?: string, includeInactive = false) {
   const term = q?.trim();
   const where: Prisma.StandardTaskWhereInput = {
     ...(includeInactive ? {} : { active: true }),
-    ...(term ? { OR: [{ description: { contains: term } }, { category: { contains: term } }, { letter: { contains: term } }] } : {}),
+    ...(term ? { OR: [{ description: { contains: term, mode: "insensitive" } }, { category: { contains: term, mode: "insensitive" } }, { letter: { contains: term, mode: "insensitive" } }] } : {}),
   };
   const rows = await prisma.standardTask.findMany({ where, orderBy: [{ category: "asc" }, { description: "asc" }] });
   return rows.map((t) => ({ id: t.id, category: t.category, description: t.description, letter: t.letter ?? "", presence: t.customerPresenceRequired, isSystem: t.isSystem, active: t.active }));
