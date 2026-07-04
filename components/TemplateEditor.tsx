@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import type { Template } from "@/lib/templates-config";
 import type { SaveState } from "@/app/actions/settings";
+import { sendTestMessage } from "@/app/actions/templates";
 
 type TemplateValues = { subjects?: string[]; body?: string; smsSender?: string };
 
@@ -15,6 +16,12 @@ export default function TemplateEditor({
 }) {
   const [showVars, setShowVars] = useState(false);
   const [state, formAction, pending] = useActionState(action, {});
+  const [testEmail, setTestEmail] = useState("");
+  const [testSms, setTestSms] = useState("");
+  const [testMsg, setTestMsg] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testPending, startTest] = useTransition();
+  const runTest = (channel: "email" | "sms", to: string) =>
+    startTest(async () => setTestMsg(await sendTestMessage(channel, to)));
 
   if (!t.editable) {
     return (
@@ -74,13 +81,14 @@ export default function TemplateEditor({
               <label className="col-label">Send en test</label>
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                  <input className="form-control" placeholder="Test e-mail" />
-                  <button type="button" className="btn btn-light">Send test e-mail</button>
+                  <input name="test_email" className="form-control" placeholder="Test e-mail" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} />
+                  <button type="button" className="btn btn-light" disabled={testPending} onClick={() => runTest("email", testEmail)}>Send test e-mail</button>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                  <input className="form-control" placeholder="Test SMS" />
-                  <button type="button" className="btn btn-light">Send test SMS</button>
+                  <input name="test_phone_number" className="form-control" placeholder="Test SMS" value={testSms} onChange={(e) => setTestSms(e.target.value)} />
+                  <button type="button" className="btn btn-light" disabled={testPending} onClick={() => runTest("sms", testSms)}>Send test SMS</button>
                 </div>
+                {testMsg ? <small className="form-text" style={{ color: testMsg.ok ? "var(--success)" : "var(--danger, #C4183C)" }}>{testMsg.message}</small> : null}
               </div>
             </div>
 
