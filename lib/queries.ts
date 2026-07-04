@@ -5,6 +5,7 @@
 import { prisma } from "./db";
 import type { Contact, Subscription, Order, TaskLine } from "./data";
 import { planWeek, isoWeek, fmtTime, type Job } from "./planner";
+import { weekLabel } from "./weeks";
 import {
   sourceType, type CalEvent, type CalStatus, type LockState,
   type WeekDay, type Employee, type CalendarWeek, type DayProgram, type DayStop,
@@ -375,6 +376,19 @@ export async function getOrderDetail(id: number): Promise<OrderDetail | null> {
 }
 
 // ---- Planner ---------------------------------------------------------------
+
+/** Planned holidays (Ferier) with display labels for the /holidays list. */
+export async function getHolidays() {
+  const rows = await prisma.holidayWeek.findMany({ orderBy: { startWeek: "asc" } });
+  return rows.map((h) => {
+    const startISO = ymd(h.startWeek), endISO = ymd(h.endWeek);
+    return {
+      id: h.id,
+      period: startISO === endISO ? weekLabel(startISO) : `${weekLabel(startISO)} – ${weekLabel(endISO)}`,
+      editableUntil: weekLabel(ymd(new Date(h.startWeek.getTime() - 7 * 864e5))),
+    };
+  });
+}
 
 /** True if the week beginning `weekMonday` is closed by a holiday (Ferie). */
 export async function isHolidayWeek(weekMonday: string): Promise<boolean> {
