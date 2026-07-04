@@ -434,10 +434,14 @@ async function buildWeekPlan(weekMonday: string) {
   ]);
   const holiday = await isHolidayWeek(weekMonday);
   const priceById = new Map<number, number>();
-  const metaById = new Map<number, { subNo: number | null; status: string }>();
+  const metaById = new Map<number, { subNo: number | null; status: string; tasks: TaskLine[]; comment: string; addressNote: string }>();
   const jobs: Job[] = holiday ? [] : orders.map((o) => {
     priceById.set(o.id, o.tasks.reduce((a, t) => a + t.price, 0));
-    metaById.set(o.id, { subNo: o.subscription?.displayNo ?? null, status: o.status });
+    metaById.set(o.id, {
+      subNo: o.subscription?.displayNo ?? null, status: o.status,
+      tasks: [...o.tasks].sort((a, b) => a.sort - b.sort).map(mapTask),
+      comment: o.comment ?? "", addressNote: o.addressNote ?? "",
+    });
     return {
       id: o.id, contactId: o.contactId, customer: o.contact.name,
       address: o.deliveryAddress, postal: postalOf(o.deliveryAddress),
@@ -521,16 +525,23 @@ export async function getDayProgram(dateISO: string): Promise<DayProgram> {
   const date = new Date(`${dateISO}T00:00:00Z`);
   const weekdayIdx = (date.getUTCDay() + 6) % 7; // 0 = Monday
   const mondayISO = ymd(new Date(date.getTime() - weekdayIdx * 864e5));
-  const { plan, priceById, empName } = await buildWeekPlan(mondayISO);
+  const { plan, priceById, metaById, empName } = await buildWeekPlan(mondayISO);
   const dayPlan = plan.days.find((d) => d.weekday === weekdayIdx);
 
-  const stops: DayStop[] = (dayPlan?.stops ?? []).map((s) => ({
-    from: fmtTime(s.startMin), to: fmtTime(s.endMin),
-    address: s.job.address, customer: s.job.customer,
-    price: priceById.get(s.job.id) ?? 0,
-    employee: empName.get(dayPlan!.employeeId) ?? "Ingen",
-    source: s.job.source,
-  }));
+  const stops: DayStop[] = (dayPlan?.stops ?? []).map((s) => {
+    const meta = metaById.get(s.job.id);
+    return {
+      from: fmtTime(s.startMin), to: fmtTime(s.endMin),
+      address: s.job.address, customer: s.job.customer,
+      price: priceById.get(s.job.id) ?? 0,
+      employee: empName.get(dayPlan!.employeeId) ?? "Ingen",
+      source: s.job.source,
+      orderId: s.job.id, contactId: s.job.contactId,
+      subscriptionNo: meta?.subNo ?? null, status: meta?.status ?? "Afventer levering",
+      tasks: (meta?.tasks ?? []).map((t) => ({ category: t.category, letter: t.letter, description: t.description, price: t.price, durationMin: t.durationMin })),
+      comment: meta?.comment ?? "", addressNote: meta?.addressNote ?? "",
+    };
+  });
 
   let revenueWeek = 0;
   for (const d of plan.days) for (const s of d.stops) revenueWeek += priceById.get(s.job.id) ?? 0;
@@ -538,6 +549,9 @@ export async function getDayProgram(dateISO: string): Promise<DayProgram> {
   return {
     heading: `${date.getUTCDate()}. ${MON_SHORT[date.getUTCMonth()]} ${date.getUTCFullYear()}`,
     relative: `${WEEKDAYS_FULL[weekdayIdx]} (uge ${isoWeek(mondayISO)})`,
+    dateISO, weekMonday: mondayISO,
+    prevISO: ymd(new Date(date.getTime() - 864e5)),
+    nextISO: ymd(new Date(date.getTime() + 864e5)),
     revenueDay: stops.reduce((a, s) => a + s.price, 0),
     revenueWeek,
     revenueMonth: await monthRevenue(date.getUTCFullYear(), date.getUTCMonth()),

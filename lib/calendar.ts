@@ -69,11 +69,22 @@ export type DayStop = {
   from: string; to: string;
   address: string; customer: string; price: number;
   employee: string; source: string;
+  orderId: number;
+  contactId: number;
+  subscriptionNo: number | null;
+  status: string;
+  tasks: { category: string; letter: string; description: string; price: number; durationMin: number }[];
+  comment: string;
+  addressNote: string;
 };
 
 export type DayProgram = {
   heading: string;
   relative: string;
+  dateISO: string;      // the day shown (for ‹ / › navigation)
+  weekMonday: string;   // Monday of the shown week (for "Gå til ugen i kalender")
+  prevISO: string;
+  nextISO: string;
   revenueDay: number; revenueWeek: number; revenueMonth: number;
   driving: string;
   stops: DayStop[];
