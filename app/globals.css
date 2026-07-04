@@ -296,6 +296,10 @@ select.form-control-sm { background-position: right 10px center; padding-right: 
 .chartcard { border: 1px solid var(--card-border); border-radius: 10px; box-shadow: var(--shadow-card); padding: 18px 20px; margin-top: 18px; background: #fff; }
 .chartcard h3 { font-family: var(--font-head); font-size: 20px; font-weight: 400; margin: 0 0 6px; }
 .chart-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--card-border); border-radius: 6px; overflow: hidden; font-size: 12px; font-family: var(--font-head); }
+.seg > span { padding: 4px 11px; cursor: pointer; color: var(--muted); background: #fff; user-select: none; }
+.seg > span + span { border-left: 1px solid var(--card-border); }
+.seg > span.on { background: var(--primary); color: #fff; }
 .bars { display: flex; align-items: flex-end; gap: 7px; height: 170px; margin-top: 16px; padding-top: 6px; border-bottom: 1px solid var(--table-border); }
 .bars .bar { flex: 1; background: linear-gradient(#6ec0e5, var(--primary)); border-radius: 4px 4px 0 0; min-width: 6px; }
 .axis-label { font-size: 11px; color: var(--muted); margin-top: 6px; }

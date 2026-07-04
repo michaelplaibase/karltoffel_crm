@@ -1,5 +1,6 @@
 import { getReportData, MAP_LEGEND, type Kpi } from "@/lib/reports-data";
 import BarChart from "@/components/BarChart";
+import KpiSection from "@/components/KpiSection";
 
 export const metadata = { title: "Grafer og nøgletal · Karltoffel" };
 
@@ -17,27 +18,15 @@ function KpiCards({ items }: { items: Kpi[] }) {
   );
 }
 
-function PeriodToggle() {
-  return (
-    <span className="seg">
-      <span className="on">Sidste 12 mdr</span>
-      <span>År til dato</span>
-    </span>
-  );
-}
-
 export default async function GraphReportsPage() {
-  const { kpiCustomers, kpiRevenue, kpiSubs, charts } = await getReportData();
+  const { kpiCustomers, kpiCustomersYtd, kpiRevenue, kpiRevenueYtd, kpiSubs, charts } = await getReportData();
 
   return (
     <div className="container-1140">
       <h1 className="page-title">Grafer og nøgletal</h1>
 
-      <div className="report-head"><h4 className="section-title">Antal kunder</h4><PeriodToggle /></div>
-      <KpiCards items={kpiCustomers} />
-
-      <div className="report-head"><h4 className="section-title">Omsætning</h4><PeriodToggle /></div>
-      <KpiCards items={kpiRevenue} />
+      <KpiSection title="Antal kunder" twelve={kpiCustomers} ytd={kpiCustomersYtd} />
+      <KpiSection title="Omsætning" twelve={kpiRevenue} ytd={kpiRevenueYtd} />
 
       <div className="report-head"><h4 className="section-title">Abonnementskunder</h4></div>
       <KpiCards items={kpiSubs} />

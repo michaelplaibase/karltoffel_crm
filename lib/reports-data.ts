@@ -1,22 +1,28 @@
-// Live reporting data derived from the database (KPIs + monthly chart series).
+// Live reporting data derived from the database (KPIs + chart series).
 // Kept in its own module (not lib/queries.ts) so the reporting pages own their
-// aggregation. All amounts are DKK incl. VAT.
+// aggregation. All amounts are DKK incl. VAT. Provides both a trailing-12-months
+// and a year-to-date view (period toggle) and both monthly and weekly chart
+// series (Måned/Uge toggle).
 import { prisma } from "./db";
+import { isoWeek } from "./planner";
 
 export type Kpi = { k: string; t: string; s?: string };
 export type Series = { name: string; color: string; values: number[] };
 
-// Static legend for the customer map (the map itself is a later enhancement).
 export const MAP_LEGEND = {
   title: "Kort over kunder med omsætning de sidste 12 mdr.",
   property: ["Lejlighed", "Hus", "Rækkehus", "Ukendt"],
   revenue: ["$ 0-500 DKK", "$$ 500-1000 DKK", "$$$ 1000+ DKK"],
 };
 
-export type ChartData = { title: string; yLabel: string; labels: string[]; series: Series[] };
+export type ChartData = {
+  title: string; yLabel: string;
+  labels: string[]; series: Series[];           // monthly
+  weekLabels: string[]; weekSeries: Series[];    // weekly
+};
 export type ReportData = {
-  kpiCustomers: Kpi[];
-  kpiRevenue: Kpi[];
+  kpiCustomers: Kpi[]; kpiCustomersYtd: Kpi[];
+  kpiRevenue: Kpi[]; kpiRevenueYtd: Kpi[];
   kpiSubs: Kpi[];
   charts: ChartData[];
 };
@@ -25,6 +31,42 @@ const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "s
 const COLORS = { abo: "#257BB6", online: "#1CBD6B", manuel: "#FFB400", avg: "#9A6324" };
 const dkk = (n: number) => `DKK ${n.toLocaleString("da-DK")}`;
 const bucket = (sourceType: string) => (sourceType === "subscription" ? "abo" : sourceType === "online" ? "online" : "manuel");
+const ymd = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+function mondayOf(d: Date): Date {
+  const wd = (d.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - wd * 864e5);
+}
+
+type OrderRow = { plannedAt: Date; sourceType: string; contactId: number; tasks: { price: number }[] };
+const priceOf = (o: OrderRow) => o.tasks.reduce((a, t) => a + t.price, 0);
+
+/** Customer + revenue KPIs for a given set of orders (window). */
+function kpisForOrders(orders: OrderRow[]): { customers: Kpi[]; revenue: Kpi[]; aboRevenue: number; aboCustomers: number; activeMonths: number } {
+  const revByType = { abo: 0, online: 0, manuel: 0 } as Record<string, number>;
+  const custByType = { abo: new Set<number>(), online: new Set<number>(), manuel: new Set<number>() } as Record<string, Set<number>>;
+  const all = new Set<number>();
+  const monthsSeen = new Set<string>();
+  let total = 0;
+  for (const o of orders) {
+    const b = bucket(o.sourceType); const p = priceOf(o);
+    revByType[b] += p; total += p;
+    custByType[b].add(o.contactId); all.add(o.contactId);
+    monthsSeen.add(`${o.plannedAt.getUTCFullYear()}-${o.plannedAt.getUTCMonth()}`);
+  }
+  const customers: Kpi[] = [
+    { k: String(all.size), t: "Antal unikke kunder totalt", s: "Unikke kunder med omsætning i perioden" },
+    { k: String(custByType.abo.size), t: "Abonnementskunder", s: "Abonnementskunder med omsætning i perioden, inkl. stoppede abonnementer" },
+    { k: String(custByType.online.size), t: "Online kunder", s: "Kunder, der har bestilt online og har omsætning i perioden" },
+    { k: String(custByType.manuel.size), t: "Manuelt oprettede kunder", s: "Kunder med manuelle ordrer og omsætning i perioden" },
+  ];
+  const revenue: Kpi[] = [
+    { k: dkk(total), t: "Omsætning totalt", s: "Omsætning fra alle kundetyper i perioden" },
+    { k: dkk(revByType.abo), t: "Omsætning fra abonnementskunder", s: "Inkl. stoppede abonnementer" },
+    { k: dkk(revByType.online), t: "Omsætning fra online kunder", s: "Fra online ordrer i perioden" },
+    { k: dkk(revByType.manuel), t: "Omsætning fra manuelt oprettede kunder", s: "Fra manuelle ordrer i perioden" },
+  ];
+  return { customers, revenue, aboRevenue: revByType.abo, aboCustomers: custByType.abo.size, activeMonths: monthsSeen.size || 1 };
+}
 
 /** Report data for the trailing 12 months ending at the month of `refISO`. */
 export async function getReportData(refISO = "2026-07-15"): Promise<ReportData> {
@@ -41,71 +83,87 @@ export async function getReportData(refISO = "2026-07-15"): Promise<ReportData> 
   const activeSubs = await prisma.subscription.count({ where: { active: true } });
 
   const monthIndex = (d: Date) => months.findIndex((m) => m.year === d.getUTCFullYear() && m.month === d.getUTCMonth());
-  const priceOf = (o: (typeof orders)[number]) => o.tasks.reduce((a, t) => a + t.price, 0);
 
+  // Monthly series
   const rev = { abo: Array(12).fill(0), online: Array(12).fill(0), manuel: Array(12).fill(0) } as Record<string, number[]>;
   const cnt = { abo: Array(12).fill(0), online: Array(12).fill(0), manuel: Array(12).fill(0) } as Record<string, number[]>;
   const monthlyTotal = Array(12).fill(0) as number[];
   const monthlyOrders = Array(12).fill(0) as number[];
-  const customersByType = { abo: new Set<number>(), online: new Set<number>(), manuel: new Set<number>() } as Record<string, Set<number>>;
-  const allCustomers = new Set<number>();
-
   for (const o of orders) {
-    const mi = monthIndex(o.plannedAt);
-    if (mi < 0) continue;
-    const b = bucket(o.sourceType);
-    const p = priceOf(o);
-    rev[b][mi] += p; cnt[b][mi] += 1;
-    monthlyTotal[mi] += p; monthlyOrders[mi] += 1;
-    customersByType[b].add(o.contactId); allCustomers.add(o.contactId);
+    const mi = monthIndex(o.plannedAt); if (mi < 0) continue;
+    const b = bucket(o.sourceType); const p = priceOf(o);
+    rev[b][mi] += p; cnt[b][mi] += 1; monthlyTotal[mi] += p; monthlyOrders[mi] += 1;
   }
-
-  const totalRevenue = monthlyTotal.reduce((a, b) => a + b, 0);
-  const revByType = (b: string) => rev[b].reduce((a, x) => a + x, 0);
   const avgOrderSize = months.map((_, i) => (monthlyOrders[i] ? Math.round(monthlyTotal[i] / monthlyOrders[i]) : 0));
 
-  const kpiCustomers: Kpi[] = [
-    { k: String(allCustomers.size), t: "Antal unikke kunder totalt", s: "Unikke kunder med omsætning i perioden" },
-    { k: String(customersByType.abo.size), t: "Abonnementskunder", s: "Abonnementskunder med omsætning i perioden, inkl. stoppede abonnementer" },
-    { k: String(customersByType.online.size), t: "Online kunder", s: "Kunder, der har bestilt online og har omsætning i perioden" },
-    { k: String(customersByType.manuel.size), t: "Manuelt oprettede kunder", s: "Kunder med manuelle ordrer og omsætning i perioden" },
-  ];
-  const kpiRevenue: Kpi[] = [
-    { k: dkk(totalRevenue), t: "Omsætning totalt", s: "Omsætning fra alle kundetyper i perioden" },
-    { k: dkk(revByType("abo")), t: "Omsætning fra abonnementskunder", s: "Inkl. stoppede abonnementer" },
-    { k: dkk(revByType("online")), t: "Omsætning fra online kunder", s: "Fra online ordrer i perioden" },
-    { k: dkk(revByType("manuel")), t: "Omsætning fra manuelt oprettede kunder", s: "Fra manuelle ordrer i perioden" },
-  ];
-  const activeMonths = monthlyTotal.filter((x) => x > 0).length || 1;
+  // Weekly series — the trailing 13 weeks ending at ref.
+  const WK = 13;
+  const refMonday = mondayOf(ref);
+  const weekMondays = Array.from({ length: WK }, (_, i) => new Date(refMonday.getTime() - (WK - 1 - i) * 7 * 864e5));
+  const weekLabels = weekMondays.map((m) => `u${isoWeek(ymd(m))}`);
+  const weekStart = weekMondays[0].getTime();
+  const wIndex = (d: Date) => Math.round((mondayOf(d).getTime() - weekStart) / (7 * 864e5));
+  const wrev = { abo: Array(WK).fill(0), online: Array(WK).fill(0), manuel: Array(WK).fill(0) } as Record<string, number[]>;
+  const wcnt = { abo: Array(WK).fill(0), online: Array(WK).fill(0), manuel: Array(WK).fill(0) } as Record<string, number[]>;
+  const wTotal = Array(WK).fill(0) as number[];
+  const wOrders = Array(WK).fill(0) as number[];
+  for (const o of orders) {
+    const wi = wIndex(o.plannedAt); if (wi < 0 || wi >= WK) continue;
+    const b = bucket(o.sourceType); const p = priceOf(o);
+    wrev[b][wi] += p; wcnt[b][wi] += 1; wTotal[wi] += p; wOrders[wi] += 1;
+  }
+  const wAvg = Array.from({ length: WK }, (_, i) => (wOrders[i] ? Math.round(wTotal[i] / wOrders[i]) : 0));
+
+  // KPIs — 12-month vs year-to-date windows.
+  const twelve = kpisForOrders(orders);
+  const jan1 = new Date(Date.UTC(ref.getUTCFullYear(), 0, 1));
+  const ytdOrders = orders.filter((o) => o.plannedAt >= jan1 && o.plannedAt <= ref);
+  const ytd = kpisForOrders(ytdOrders);
+
   const kpiSubs: Kpi[] = [
-    { k: dkk(Math.round(revByType("abo") / activeMonths)), t: "Gns. månedlig omsætning", s: "Gns. månedlig omsætning fra abonnementskunder" },
-    { k: dkk(revByType("abo")), t: "Omsætning fra abonnementer i perioden", s: "I den viste 12-måneders periode" },
+    { k: dkk(Math.round(twelve.aboRevenue / twelve.activeMonths)), t: "Gns. månedlig omsætning", s: "Gns. månedlig omsætning fra abonnementskunder" },
+    { k: dkk(twelve.aboRevenue), t: "Omsætning fra abonnementer i perioden", s: "I den viste 12-måneders periode" },
     { k: String(activeSubs), t: "Aktive abonnementer", s: "Samlet antal aktive abonnementer" },
-    { k: String(customersByType.abo.size), t: "Abonnementskunder med omsætning", s: "I den viste periode" },
+    { k: String(twelve.aboCustomers), t: "Abonnementskunder med omsætning", s: "I den viste periode" },
   ];
 
   const charts: ChartData[] = [
     {
-      title: "Omsætning per kundetype", yLabel: "DKK (inkl. moms)", labels,
+      title: "Omsætning per kundetype", yLabel: "DKK (inkl. moms)", labels, weekLabels,
       series: [
         { name: "Abonnementskunder", color: COLORS.abo, values: rev.abo },
         { name: "Online kunder", color: COLORS.online, values: rev.online },
         { name: "Manuelle kunder", color: COLORS.manuel, values: rev.manuel },
       ],
+      weekSeries: [
+        { name: "Abonnementskunder", color: COLORS.abo, values: wrev.abo },
+        { name: "Online kunder", color: COLORS.online, values: wrev.online },
+        { name: "Manuelle kunder", color: COLORS.manuel, values: wrev.manuel },
+      ],
     },
     {
-      title: "Antal ordrer per kundetype", yLabel: "Antal ordrer", labels,
+      title: "Antal ordrer per kundetype", yLabel: "Antal ordrer", labels, weekLabels,
       series: [
         { name: "Abonnementskunder", color: COLORS.abo, values: cnt.abo },
         { name: "Online kunder", color: COLORS.online, values: cnt.online },
         { name: "Manuelle kunder", color: COLORS.manuel, values: cnt.manuel },
       ],
+      weekSeries: [
+        { name: "Abonnementskunder", color: COLORS.abo, values: wcnt.abo },
+        { name: "Online kunder", color: COLORS.online, values: wcnt.online },
+        { name: "Manuelle kunder", color: COLORS.manuel, values: wcnt.manuel },
+      ],
     },
     {
-      title: "Gns. ordrestørrelse for planlagte ordrer", yLabel: "DKK (inkl. moms)", labels,
+      title: "Gns. ordrestørrelse for planlagte ordrer", yLabel: "DKK (inkl. moms)", labels, weekLabels,
       series: [{ name: "Gns. ordrestørrelse", color: COLORS.avg, values: avgOrderSize }],
+      weekSeries: [{ name: "Gns. ordrestørrelse", color: COLORS.avg, values: wAvg }],
     },
   ];
 
-  return { kpiCustomers, kpiRevenue, kpiSubs, charts };
+  return {
+    kpiCustomers: twelve.customers, kpiCustomersYtd: ytd.customers,
+    kpiRevenue: twelve.revenue, kpiRevenueYtd: ytd.revenue,
+    kpiSubs, charts,
+  };
 }

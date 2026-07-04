@@ -8,18 +8,20 @@ export default function DayPdfPage() {
         <div className="card-body">
           <h4 className="section-title">Hent dagsprogram i PDF</h4>
           <p className="muted" style={{ marginBottom: 18 }}>Download dagsprogram i PDF-format for den valgte medarbejder og dato.</p>
-          <div className="f2">
-            <label className="col-label">Medarbejder</label>
-            <select className="form-control form-control-sm" defaultValue="Kristian Klercke">
-              <option>Kristian Klercke</option>
-            </select>
-          </div>
-          <div className="f2">
-            <label className="col-label">Dato</label>
-            <input className="form-control" type="date" />
-          </div>
-          <hr className="section-hr" />
-          <button className="btn btn-primary">Hent dagsprogram</button>
+          <form action="/api/reports/day-pdf" method="get">
+            <div className="f2">
+              <label className="col-label">Medarbejder</label>
+              <select className="form-control form-control-sm" name="employee" defaultValue="Kristian Klercke">
+                <option>Kristian Klercke</option>
+              </select>
+            </div>
+            <div className="f2">
+              <label className="col-label">Dato</label>
+              <input className="form-control" type="date" name="date" defaultValue="2026-06-29" />
+            </div>
+            <hr className="section-hr" />
+            <button className="btn btn-primary" type="submit">Hent dagsprogram</button>
+          </form>
         </div>
       </div>
     </div>
