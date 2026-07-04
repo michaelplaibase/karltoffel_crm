@@ -31,6 +31,10 @@
 .tm-flow button{font-family:inherit;cursor:pointer}
 .tm-flow input,.tm-flow select{font-family:inherit}
 .tm-flow :focus-visible{outline:3px solid var(--gul);outline-offset:2px}
+/* Klik virker på ALLE labels i flowet (ophæver sidens globale label{pointer-events:none}). */
+.tm-flow label{pointer-events:auto}
+/* Mørk fokus-ring på lyse flader (gul-på-gul ellers usynlig). */
+.tm-flow .row :focus-visible,.tm-flow .topbar :focus-visible,.tm-flow .qty input:focus-visible,.tm-flow .kontakt input:focus-visible,.tm-flow .kontakt textarea:focus-visible{outline-color:var(--brun)}
 
 .tm-flow .tm-main{max-width:1040px;margin:0 auto;padding:56px 24px 120px}
 .tm-flow .step{display:none}
@@ -91,7 +95,7 @@
 
 /* STEP 3: LØSNINGSLISTE */
 .tm-flow .losning{padding:28px 0 0}
-.tm-flow .topbar{position:sticky;top:12px;z-index:40;background:var(--ivory);color:var(--brun);border-radius:18px;padding:18px 22px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.tm-flow .topbar{position:sticky;top:82px;z-index:40;background:var(--ivory);color:var(--brun);border-radius:18px;padding:18px 22px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .tm-flow .topbar .adr-line{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px}
 .tm-flow .pin{width:16px;height:16px;flex:none}
 .tm-flow .fakta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid #e4dfc8}
@@ -105,9 +109,11 @@
 
 .tm-flow .socio{margin:30px 4px 12px;font-size:15px;color:var(--gul)}
 .tm-flow .rows{display:flex;flex-direction:column;gap:12px}
-.tm-flow .row{display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;background:var(--gul);color:var(--brun);border-radius:16px;padding:16px 18px}
+.tm-flow .row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:16px;align-items:center;background:var(--gul);color:var(--brun);border-radius:16px;padding:16px 18px}
+.tm-flow .row--noqty{grid-template-columns:auto minmax(0,1fr) auto auto}
 .tm-flow .row--incl{background:#fbf3ad}
 .tm-flow .row input[type=checkbox]{width:24px;height:24px;accent-color:var(--brun)}
+.tm-flow .row .navn{min-width:0}
 .tm-flow .row .navn b{font-size:17px}
 .tm-flow .row .navn small{display:block;font-size:12.5px;color:var(--bronze);margin-top:2px}
 .tm-flow .qty{display:flex;align-items:center;gap:6px;font-size:13px}
@@ -121,10 +127,13 @@
 .tm-flow .row .pris small{display:block;font-size:11.5px;color:var(--bronze)}
 .tm-flow .row--incl .pris b{font-size:13px;font-weight:600;color:var(--bronze)}
 @media (max-width:720px){
-  .tm-flow .row{grid-template-columns:auto 1fr;grid-template-areas:"chk navn" "chk qty" "freq pris"}
+  .tm-flow .row{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"chk navn" "chk qty" "freq freq" "pris pris";gap:10px 14px}
+  .tm-flow .row--noqty{grid-template-areas:"chk navn" "freq freq" "pris pris"}
   .tm-flow .row input[type=checkbox]{grid-area:chk}
   .tm-flow .row .navn{grid-area:navn}.tm-flow .row .qty{grid-area:qty}
-  .tm-flow .row .freq{grid-area:freq;justify-self:start}.tm-flow .row .pris{grid-area:pris}
+  .tm-flow .row .freq{grid-area:freq;justify-self:start}
+  .tm-flow .row .pris{grid-area:pris;justify-self:start;text-align:left;min-width:0;display:flex;gap:8px;align-items:baseline}
+  .tm-flow .row .pris small{margin-top:0}
   .tm-flow .fakta,.tm-flow .regnestrimmel{grid-template-columns:repeat(2,1fr)}
 }
 .tm-flow .gaps{margin:26px 4px 0;font-size:13px;opacity:.7}
