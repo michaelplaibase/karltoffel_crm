@@ -3,7 +3,7 @@
 // Server actions for fixed-price agreements (Fastprisaftale): create and update,
 // including the task-line formset (no interval — a fixed-price agreement has no
 // recurrence, only description/category/price/duration per line).
-import { prisma } from "@/lib/db";
+import { prisma, isUniqueViolation } from "@/lib/db";
 import { categoryColor } from "@/lib/categories";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -55,19 +55,26 @@ export async function createFixedPrice(_prev: FixedPriceState, formData: FormDat
   const contact = await prisma.contact.findUnique({ where: { id: p.contactId } });
   if (!contact) return { error: "Kunden blev ikke fundet." };
 
-  const max = await prisma.fixedPriceAgreement.aggregate({ _max: { displayNo: true } });
-  const displayNo = (max._max.displayNo ?? 100000) + 1;
+  const deliveryAddress = contact.city ? `${contact.street}, ${contact.city}` : contact.street;
 
-  const created = await prisma.fixedPriceAgreement.create({
-    data: {
-      displayNo, contactId: p.contactId,
-      deliveryAddress: contact.city ? `${contact.street}, ${contact.city}` : contact.street,
-      tasks: { create: taskCreate(p.lines) },
-    },
-  });
+  // Allocate "Aftale nr." (displayNo) + insert with retry (see subscriptions.ts).
+  let displayNo = 0;
+  for (let attempt = 0; ; attempt++) {
+    const max = await prisma.fixedPriceAgreement.aggregate({ _max: { displayNo: true } });
+    displayNo = (max._max.displayNo ?? 100000) + 1;
+    try {
+      await prisma.fixedPriceAgreement.create({
+        data: { displayNo, contactId: p.contactId, deliveryAddress, tasks: { create: taskCreate(p.lines) } },
+      });
+      break;
+    } catch (e) {
+      if (isUniqueViolation(e) && attempt < 5) continue;
+      throw e;
+    }
+  }
   revalidatePath("/fixed-prices");
   revalidatePath(`/customers/${p.contactId}`);
-  redirect(`/fixed-prices/${created.displayNo}`);
+  redirect(`/fixed-prices/${displayNo}`);
 }
 
 export async function updateFixedPrice(pk: number, _prev: FixedPriceState, formData: FormData): Promise<FixedPriceState> {

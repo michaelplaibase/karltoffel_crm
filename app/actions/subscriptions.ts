@@ -2,7 +2,7 @@
 
 // Server actions for subscriptions (Abonnement): create and update, including
 // the task-line formset (with interval + next-week per line).
-import { prisma } from "@/lib/db";
+import { prisma, isUniqueViolation } from "@/lib/db";
 import { categoryColor } from "@/lib/categories";
 import { generateForSubscriptionId, generateAllSubscriptionOrders, regenerateFutureOrders } from "@/lib/recurrence";
 import { revalidatePath } from "next/cache";
@@ -73,24 +73,36 @@ export async function createSubscription(_prev: SubscriptionState, formData: For
   const contact = await prisma.contact.findUnique({ where: { id: p.contactId } });
   if (!contact) return { error: "Kunden blev ikke fundet." };
 
-  const max = await prisma.subscription.aggregate({ _max: { displayNo: true } });
-  const displayNo = (max._max.displayNo ?? 235800) + 1;
   const nextWeek = p.lines.map((l) => l.nextWeek).find(Boolean) || p.startWeek || null;
+  const deliveryAddress = contact.city ? `${contact.street}, ${contact.city}` : contact.street;
 
-  const created = await prisma.subscription.create({
-    data: {
-      displayNo, contactId: p.contactId,
-      deliveryAddress: contact.city ? `${contact.street}, ${contact.city}` : contact.street,
-      baseInterval: p.baseInterval, startWeek: p.startWeek || null, nextWeek,
-      fixedEmployee: p.fixedEmployee, tasks: { create: taskCreate(p.lines) },
-    },
-  });
-  await generateForSubscriptionId(created.id); // materialise its upcoming orders
+  // Allocate "Abo. nr." (displayNo) + insert with retry: two concurrent creates
+  // can read the same max and collide on the unique index (P2002) — re-read on retry.
+  let subId = 0, subDisplayNo = 0;
+  for (let attempt = 0; ; attempt++) {
+    const max = await prisma.subscription.aggregate({ _max: { displayNo: true } });
+    const displayNo = (max._max.displayNo ?? 235800) + 1;
+    try {
+      const created = await prisma.subscription.create({
+        data: {
+          displayNo, contactId: p.contactId, deliveryAddress,
+          baseInterval: p.baseInterval, startWeek: p.startWeek || null, nextWeek,
+          fixedEmployee: p.fixedEmployee, tasks: { create: taskCreate(p.lines) },
+        },
+      });
+      subId = created.id; subDisplayNo = created.displayNo;
+      break;
+    } catch (e) {
+      if (isUniqueViolation(e) && attempt < 5) continue;
+      throw e;
+    }
+  }
+  await generateForSubscriptionId(subId); // materialise its upcoming orders
   revalidatePath("/subscriptions");
   revalidatePath("/orders");
   revalidatePath("/calendar");
   revalidatePath(`/customers/${p.contactId}`);
-  redirect(`/subscriptions/${created.displayNo}`);
+  redirect(`/subscriptions/${subDisplayNo}`);
 }
 
 export async function updateSubscription(pk: number, _prev: SubscriptionState, formData: FormData): Promise<SubscriptionState> {

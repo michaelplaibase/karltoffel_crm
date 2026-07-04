@@ -183,6 +183,16 @@ async function main() {
     })),
   });
 
+  // Postgres: inserting EXPLICIT ids above does NOT advance the SERIAL sequences,
+  // so without this the next app-created row would collide on the primary key.
+  // Reset each sequence to max(id)+1 (or 1 for empty tables). No-op on non-Postgres.
+  if (process.env.DATABASE_URL?.startsWith("postgres")) {
+    const tables = ["Company", "User", "Contact", "StandardTask", "TaskLine", "Subscription", "FixedPriceAgreement", "Order", "DiscountCode", "HolidayWeek"];
+    for (const t of tables) {
+      await prisma.$queryRawUnsafe(`SELECT setval(pg_get_serial_sequence('"${t}"','id'), COALESCE((SELECT MAX(id) FROM "${t}"), 0) + 1, false)`);
+    }
+  }
+
   const counts = {
     companies: await prisma.company.count(),
     users: await prisma.user.count(),

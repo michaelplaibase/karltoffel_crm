@@ -47,6 +47,8 @@ model User {
   canHandlePayment Boolean  @default(true)
   canChangePaymentOption Boolean @default(true)
   orders           Order[]
+
+  @@index([companyId])
 }
 
 model Contact {
@@ -76,6 +78,8 @@ model Contact {
   fixedPrices   FixedPriceAgreement[]
   orders        Order[]
   createdAt     DateTime  @default(now())
+
+  @@index([companyId])
 }
 
 model StandardTask {
@@ -88,6 +92,8 @@ model StandardTask {
   customerPresenceRequired Boolean @default(false)
   isSystem    Boolean  @default(false) // locked, cannot edit/deactivate
   active      Boolean  @default(true)
+
+  @@index([companyId])
 }
 
 model TaskLine {
@@ -110,6 +116,10 @@ model TaskLine {
   order         Order?   @relation(fields: [orderId], references: [id])
   orderId       Int?
   sort          Int      @default(0)
+
+  @@index([orderId])
+  @@index([subscriptionId])
+  @@index([fixedPriceId])
 }
 
 model Subscription {
@@ -129,6 +139,8 @@ model Subscription {
   tasks          TaskLine[]
   orders         Order[]
   createdAt      DateTime  @default(now())
+
+  @@index([contactId])
 }
 
 model FixedPriceAgreement {
@@ -139,6 +151,8 @@ model FixedPriceAgreement {
   deliveryAddress String
   tasks          TaskLine[]
   orders         Order[]
+
+  @@index([contactId])
 }
 
 model Order {
@@ -160,6 +174,10 @@ model Order {
   addressNote   String?
   tasks         TaskLine[]
   createdAt     DateTime  @default(now())
+
+  @@index([contactId])
+  @@index([subscriptionId])
+  @@index([plannedAt])
 }
 
 model DiscountCode {

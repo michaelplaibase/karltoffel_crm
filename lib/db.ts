@@ -8,3 +8,9 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+/** True if the error is a Prisma unique-constraint violation (P2002). Used to
+ *  retry app-allocated numbers (displayNo) that can race on concurrent creates. */
+export function isUniqueViolation(e: unknown): boolean {
+  return typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002";
+}
