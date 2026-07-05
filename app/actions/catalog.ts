@@ -3,6 +3,7 @@
 // Server actions for the settings catalogs backed by real models: discount codes
 // (Rabatkoder) and standard tasks (Standardopgaver).
 import { prisma } from "@/lib/db";
+import { guardAction } from "@/lib/api-auth";
 import { revalidatePath } from "next/cache";
 
 export type CatalogState = { error?: string; ok?: boolean };
@@ -10,6 +11,7 @@ export type CatalogState = { error?: string; ok?: boolean };
 // ---- Discount codes --------------------------------------------------------
 
 export async function createDiscountCode(_prev: CatalogState, formData: FormData): Promise<CatalogState> {
+  await guardAction();
   const code = String(formData.get("code") ?? "").trim();
   const percent = Number(formData.get("percent"));
   const expires = String(formData.get("expiresAt") ?? "").trim();
@@ -23,6 +25,7 @@ export async function createDiscountCode(_prev: CatalogState, formData: FormData
 }
 
 export async function deleteDiscountCode(id: number): Promise<void> {
+  await guardAction();
   await prisma.discountCode.delete({ where: { id } });
   revalidatePath("/discount-codes");
 }
@@ -30,6 +33,7 @@ export async function deleteDiscountCode(id: number): Promise<void> {
 // ---- Standard tasks --------------------------------------------------------
 
 export async function createStandardTask(_prev: CatalogState, formData: FormData): Promise<CatalogState> {
+  await guardAction();
   const category = String(formData.get("category") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const presence = formData.get("presence") === "on";
@@ -46,6 +50,7 @@ export async function createStandardTask(_prev: CatalogState, formData: FormData
 
 /** Deactivate/reactivate a standard task (system tasks are locked). */
 export async function toggleStandardTask(id: number): Promise<void> {
+  await guardAction();
   const t = await prisma.standardTask.findUnique({ where: { id } });
   if (!t || t.isSystem) return;
   await prisma.standardTask.update({ where: { id }, data: { active: !t.active } });

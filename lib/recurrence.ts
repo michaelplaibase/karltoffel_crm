@@ -24,11 +24,12 @@ function mondayOf(d: Date): Date {
   return new Date(midnight - wd * 864e5);
 }
 
-/** "Hver uge" → 1, "Hver 2. uge" → 2, … */
+/** "Hver uge" → 1, "Hver 2. uge" → 2, … Floored at 1: a 0/garbage interval
+ *  would make `step` 0 and hang order generation in an infinite loop. */
 function parseBaseInterval(label: string): number {
   const m = label.match(/Hver\s+(\d+)\.\s*uge/i);
-  if (m) return Number(m[1]);
-  return /Hver\s+uge/i.test(label) ? 1 : 1;
+  if (m) return Math.max(1, Number(m[1]));
+  return 1;
 }
 
 /** "Hver gang" → 1, "Hver 2. gang" → 2, "På anmodning" → null (not auto-scheduled). */
@@ -36,8 +37,8 @@ function parseMultiplier(label: string | null): number | null {
   if (!label) return 1;
   if (/anmodning/i.test(label)) return null;
   const m = label.match(/Hver\s+(\d+)\.\s*gang/i);
-  if (m) return Number(m[1]);
-  return /Hver\s+gang/i.test(label) ? 1 : 1;
+  if (m) return Math.max(1, Number(m[1]));
+  return 1;
 }
 
 /** "Uge 29" → 29 (year-less; resolved against a reference year). */

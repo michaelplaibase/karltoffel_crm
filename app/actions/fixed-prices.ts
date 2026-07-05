@@ -4,6 +4,7 @@
 // including the task-line formset (no interval — a fixed-price agreement has no
 // recurrence, only description/category/price/duration per line).
 import { prisma, isUniqueViolation } from "@/lib/db";
+import { guardAction } from "@/lib/api-auth";
 import { categoryColor } from "@/lib/categories";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -12,6 +13,7 @@ export type FixedPriceState = { error?: string };
 
 /** Delete a fixed-price agreement and its task lines. */
 export async function deleteFixedPrice(pk: number): Promise<void> {
+  await guardAction();
   const fp = await prisma.fixedPriceAgreement.findUnique({ where: { id: pk }, select: { contactId: true } });
   await prisma.$transaction([
     prisma.taskLine.deleteMany({ where: { fixedPriceId: pk } }),
@@ -50,6 +52,7 @@ function parse(formData: FormData): Fields | { error: string } {
 }
 
 export async function createFixedPrice(_prev: FixedPriceState, formData: FormData): Promise<FixedPriceState> {
+  await guardAction();
   const p = parse(formData);
   if ("error" in p) return p;
   const contact = await prisma.contact.findUnique({ where: { id: p.contactId } });
@@ -78,6 +81,7 @@ export async function createFixedPrice(_prev: FixedPriceState, formData: FormDat
 }
 
 export async function updateFixedPrice(pk: number, _prev: FixedPriceState, formData: FormData): Promise<FixedPriceState> {
+  await guardAction();
   const p = parse(formData);
   if ("error" in p) return p;
   const contact = await prisma.contact.findUnique({ where: { id: p.contactId } });

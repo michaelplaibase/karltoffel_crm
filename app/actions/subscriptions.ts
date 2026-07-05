@@ -3,6 +3,7 @@
 // Server actions for subscriptions (Abonnement): create and update, including
 // the task-line formset (with interval + next-week per line).
 import { prisma, isUniqueViolation } from "@/lib/db";
+import { guardAction } from "@/lib/api-auth";
 import { categoryColor } from "@/lib/categories";
 import { generateForSubscriptionId, generateAllSubscriptionOrders, regenerateFutureOrders } from "@/lib/recurrence";
 import { revalidatePath } from "next/cache";
@@ -12,6 +13,7 @@ export type SubscriptionState = { error?: string };
 
 /** Materialise upcoming orders for every active subscription (manual button). */
 export async function regenerateOrders(): Promise<void> {
+  await guardAction();
   await generateAllSubscriptionOrders();
   revalidatePath("/subscriptions");
   revalidatePath("/orders");
@@ -61,6 +63,7 @@ function parse(formData: FormData): Fields | { error: string } {
 
 /** Stop a subscription (soft): mark inactive so no further orders are created. */
 export async function stopSubscription(pk: number): Promise<void> {
+  await guardAction();
   const sub = await prisma.subscription.update({ where: { id: pk }, data: { active: false }, select: { contactId: true } });
   revalidatePath("/subscriptions");
   revalidatePath(`/customers/${sub.contactId}`);
@@ -68,6 +71,7 @@ export async function stopSubscription(pk: number): Promise<void> {
 }
 
 export async function createSubscription(_prev: SubscriptionState, formData: FormData): Promise<SubscriptionState> {
+  await guardAction();
   const p = parse(formData);
   if ("error" in p) return p;
   const contact = await prisma.contact.findUnique({ where: { id: p.contactId } });
@@ -106,6 +110,7 @@ export async function createSubscription(_prev: SubscriptionState, formData: For
 }
 
 export async function updateSubscription(pk: number, _prev: SubscriptionState, formData: FormData): Promise<SubscriptionState> {
+  await guardAction();
   const p = parse(formData);
   if ("error" in p) return p;
   const contact = await prisma.contact.findUnique({ where: { id: p.contactId } });

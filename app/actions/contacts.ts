@@ -4,6 +4,7 @@
 // <form action={…}> in components/ContactForm. Single-tenant for now: writes
 // attach to the one seeded Company. Auth is a later phase (see the goal TODO).
 import { prisma } from "@/lib/db";
+import { guardAction } from "@/lib/api-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -51,6 +52,7 @@ function toData(f: Parsed) {
 }
 
 export async function createContact(_prev: ContactFormState, formData: FormData): Promise<ContactFormState> {
+  await guardAction();
   const f = parse(formData);
   const data = toData(f);
   if (!data.name) return { error: "Angiv et navn." };
@@ -64,6 +66,7 @@ export async function createContact(_prev: ContactFormState, formData: FormData)
 /** Delete a customer and everything attached to it (orders, subscriptions,
  *  fixed-price agreements and their task lines) in one transaction. */
 export async function deleteContact(id: number): Promise<void> {
+  await guardAction();
   await prisma.$transaction([
     prisma.taskLine.deleteMany({ where: { OR: [
       { order: { contactId: id } },
@@ -80,6 +83,7 @@ export async function deleteContact(id: number): Promise<void> {
 }
 
 export async function updateContactSettings(id: number, _prev: ContactFormState, formData: FormData): Promise<ContactFormState> {
+  await guardAction();
   await prisma.contact.update({
     where: { id },
     data: {
@@ -94,6 +98,7 @@ export async function updateContactSettings(id: number, _prev: ContactFormState,
 }
 
 export async function updateContact(id: number, _prev: ContactFormState, formData: FormData): Promise<ContactFormState> {
+  await guardAction();
   const f = parse(formData);
   const data = toData(f);
   if (!data.name) return { error: "Angiv et navn." };
