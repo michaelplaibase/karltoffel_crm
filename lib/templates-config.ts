@@ -403,4 +403,96 @@ De bedste hilsner
     ],
     maxSubject: 50,
   },
+  {
+    key: "tilbud",
+    menuLabel: "Tilbudsmail",
+    heading: "Tilbudsmail",
+    intro:
+      "Skabelon til det tilbud, du sender til en kunde på e-mail. Felterne herunder udfyldes automatisk ud fra kundens oplysninger og opgaverne på tilbuddet, når du sender fra en kunde eller en ordre.",
+    editable: true,
+    subjects: [
+      {
+        label: "E-mail emne",
+        name: "tilbud_email_subject",
+        val: "Tilbud på vinduespudsning – {{leverings_adresse}}",
+      },
+    ],
+    body: `Kære {{kunde_fornavn}}
+
+Tak for din henvendelse. Hermed vores tilbud på vinduespudsning på adressen {{leverings_adresse}}:
+
+{{opgave_liste}}
+
+Samlet pris pr. gang: {{tilbud_total}}
+{{pris_moms_info}}
+
+Prisen forudsætter fri adgang til alle vinduer på adressen. Ønsker du en fast aftale, sørger vi automatisk for, at dine vinduer altid står skarpe – uden at du skal løfte en finger, og du kan naturligvis til enhver tid sætte aftalen på pause eller opsige den.
+
+Tilbuddet er gyldigt til og med {{tilbud_gyldig_til}}. Du accepterer nemt ved at besvare denne e-mail eller ringe til os på {{dit_telefonnummer}} – så aftaler vi første besøg.
+
+Vi glæder os til at høre fra dig.
+
+De bedste hilsner
+{{dit_firmanavn}}
+{{dit_telefonnummer}} · {{din_email}}`,
+    smsSender: "Service SMS",
+    variables: [
+      { token: "{{kunde_fornavn}}", desc: "Fornavnet på kunden (første ord i navnefeltet; for firmaer bruges att.-navnet)." },
+      { token: "{{leverings_adresse}}", desc: "Tilbuddets leveringsadresse (ordrens adresse, ellers kundens adresse)." },
+      { token: "{{opgave_liste}}", desc: "Nummereret liste over opgaverne på tilbuddet med pris pr. linje." },
+      { token: "{{tilbud_total}}", desc: "Samlet pris for opgaverne (inkl. moms)." },
+      { token: "{{pris_moms_info}}", desc: "Fast tekst: at alle priser er inkl. moms." },
+      { token: "{{tilbud_gyldig_til}}", desc: "Datoen tilbuddet er gyldigt til (30 dage fra afsendelse)." },
+      { token: "{{dit_firmanavn}}", desc: "Navnet på din virksomhed." },
+      { token: "{{dit_telefonnummer}}", desc: "Telefonnummeret på din virksomhed." },
+      { token: "{{din_email}}", desc: "E-mailadressen på din virksomhed." },
+    ],
+    maxSubject: 100,
+  },
+  {
+    key: "tilbud-opfoelgning",
+    menuLabel: "Opfølgning på tilbud",
+    heading: "Opfølgning på tilbud",
+    intro:
+      "Skabelon til en venlig opfølgning på et tidligere fremsendt tilbud, som kunden endnu ikke har svaret på.",
+    editable: true,
+    subjects: [
+      {
+        label: "E-mail emne",
+        name: "tilbud_opfoelgning_email_subject",
+        val: "Har du haft tid til at kigge på vores tilbud?",
+      },
+    ],
+    body: `Kære {{kunde_fornavn}}
+
+Vi sendte dig for nylig et tilbud på vinduespudsning på adressen {{leverings_adresse}} og ville blot høre, om du har haft mulighed for at kigge på det.
+
+Kort opsummeret tilbød vi:
+
+{{opgave_liste}}
+
+Samlet pris pr. gang: {{tilbud_total}}
+{{pris_moms_info}}
+
+Tilbuddet gælder til og med {{tilbud_gyldig_til}}. Har du spørgsmål, eller ønsker du at justere opgaverne, så svar blot på denne e-mail eller ring til os på {{dit_telefonnummer}} – så finder vi en løsning, der passer dig.
+
+Tak fordi du overvejer os.
+
+De bedste hilsner
+{{dit_firmanavn}}
+{{dit_telefonnummer}} · {{din_email}}`,
+    smsSender: "Service SMS",
+    variables: [
+      { token: "{{kunde_fornavn}}", desc: "Fornavnet på kunden (første ord i navnefeltet; for firmaer bruges att.-navnet)." },
+      { token: "{{leverings_adresse}}", desc: "Tilbuddets leveringsadresse (ordrens adresse, ellers kundens adresse)." },
+      { token: "{{opgave_liste}}", desc: "Nummereret liste over opgaverne på tilbuddet med pris pr. linje." },
+      { token: "{{tilbud_total}}", desc: "Samlet pris for opgaverne (inkl. moms)." },
+      { token: "{{pris_moms_info}}", desc: "Fast tekst: at alle priser er inkl. moms." },
+      { token: "{{tilbud_gyldig_til}}", desc: "Datoen tilbuddet er gyldigt til." },
+      { token: "{{dit_firmanavn}}", desc: "Navnet på din virksomhed." },
+      { token: "{{dit_telefonnummer}}", desc: "Telefonnummeret på din virksomhed." },
+      { token: "{{din_email}}", desc: "E-mailadressen på din virksomhed." },
+    ],
+    maxSubject: 100,
+  },
 ];
