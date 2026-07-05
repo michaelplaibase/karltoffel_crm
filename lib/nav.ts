@@ -33,6 +33,7 @@ export const TOP_NAV: NavMenu[] = [
   {
     label: "Kartotek", en: "Register",
     items: [
+      { label: "Emner", en: "Leads", href: "/leads" },
       { label: "Kunder", en: "Customers", href: "/customers" },
       { label: "Abonnementer", en: "Subscriptions", href: "/subscriptions" },
       { label: "Fastprisaftaler", en: "Fixed-price agreements", href: "/fixed-prices" },
