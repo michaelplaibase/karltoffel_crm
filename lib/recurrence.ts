@@ -5,6 +5,7 @@
 // skips holiday weeks. Server-only (Node) — used by the subscription actions,
 // the manual "Generér" button and the nightly /api/plan cron.
 import { prisma } from "./db";
+import { Prisma } from "@prisma/client";
 
 const WEEK_MS = 7 * 864e5;
 const DEFAULT_HORIZON_WEEKS = 26;
@@ -88,9 +89,16 @@ export async function generateForSubscription(sub: SubWithTasks, ref: Date = new
     j0: Math.round(((parseWeekLabel(t.startWeek) ?? subWeek) - subWeek) / base),
   }));
 
-  // Existing orders for this subscription, keyed by their week's Monday (dedup).
-  const existing = await prisma.order.findMany({ where: { subscriptionId: sub.id }, select: { plannedAt: true } });
-  const existingWeeks = new Set(existing.map((o) => mondayOf(o.plannedAt).getTime()));
+  // Existing orders keyed by the week they were generated FOR (sourceWeek) —
+  // NOT their current plannedAt: a moved order must keep claiming its rhythm
+  // week, otherwise the nightly run re-creates it and double-books the customer.
+  // (plannedAt-fallback covers rows from before the sourceWeek migration.)
+  const existing = await prisma.order.findMany({ where: { subscriptionId: sub.id }, select: { plannedAt: true, sourceWeek: true } });
+  const existingWeeks = new Set(existing.map((o) => (o.sourceWeek ?? mondayOf(o.plannedAt)).getTime()));
+
+  // Tombstones: uger hvor brugeren har SLETTET abonnements-ordren — genopliv aldrig.
+  const skips = await prisma.subscriptionWeekSkip.findMany({ where: { subscriptionId: sub.id }, select: { week: true } });
+  for (const s of skips) existingWeeks.add(mondayOf(s.week).getTime());
 
   const holidays = await prisma.holidayWeek.findMany();
   const isHoliday = (ms: number) => holidays.some((h) => ms >= h.startWeek.getTime() && ms <= h.endWeek.getTime());
@@ -111,24 +119,32 @@ export async function generateForSubscription(sub: SubWithTasks, ref: Date = new
     const due = tasks.filter((x) => x.m != null && i >= x.j0 && (i - x.j0) % x.m === 0).map((x) => x.t);
     if (!due.length) continue;
 
-    await prisma.order.create({
-      data: {
-        contactId: sub.contactId,
-        deliveryAddress: sub.deliveryAddress,
-        plannedAt: new Date(v + 10 * 3600 * 1000), // Monday 10:00 UTC
-        sourceType: "subscription",
-        subscriptionId: sub.id,
-        employeeId,
-        tasks: {
-          create: due.map((t, i) => ({
-            category: t.category, letter: t.letter, color: t.color,
-            description: t.description, price: t.price, durationMin: t.durationMin,
-            intervalMultiplier: t.intervalMultiplier, startWeek: t.startWeek,
-            isStandardTask: t.isStandardTask, fromSubscription: true, sort: i,
-          })),
+    try {
+      await prisma.order.create({
+        data: {
+          contactId: sub.contactId,
+          deliveryAddress: sub.deliveryAddress,
+          plannedAt: new Date(v + 10 * 3600 * 1000), // Monday 10:00 UTC
+          sourceWeek: new Date(v),                   // rytme-ugen — dedup-nøgle, flytning rører den ikke
+          sourceType: "subscription",
+          subscriptionId: sub.id,
+          employeeId,
+          tasks: {
+            create: due.map((t, i) => ({
+              category: t.category, letter: t.letter, color: t.color,
+              description: t.description, price: t.price, durationMin: t.durationMin,
+              intervalMultiplier: t.intervalMultiplier, startWeek: t.startWeek,
+              isStandardTask: t.isStandardTask, fromSubscription: true, sort: i,
+            })),
+          },
         },
-      },
-    });
+      });
+    } catch (e) {
+      // Unique (subscriptionId, sourceWeek): en parallel generering (cron +
+      // manuel knap) nåede ugen først — det ER idempotens, spring videre.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") { existingWeeks.add(v); continue; }
+      throw e;
+    }
     existingWeeks.add(v);
     created++;
   }

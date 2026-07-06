@@ -61,13 +61,57 @@ function parse(formData: FormData): Fields | { error: string } {
   };
 }
 
-/** Stop a subscription (soft): mark inactive so no further orders are created. */
+/** Stop a subscription: mark inactive AND rydder de allerede-materialiserede
+ *  fremtidige ordrer (pending + ulåste, fra næste uge) — ellers bliver en
+ *  opsagt kunde ved med at få besøg i op til 26 uger. Historik, afsluttede,
+ *  låste og indeværende uges ordrer røres ikke (samme kriterier som
+ *  regenerateFutureOrders i lib/recurrence.ts). */
 export async function stopSubscription(pk: number): Promise<void> {
   await guardAction();
-  const sub = await prisma.subscription.update({ where: { id: pk }, data: { active: false }, select: { contactId: true } });
+  const sub = await prisma.subscription.update({ where: { id: pk }, data: { active: false, pending: false }, select: { contactId: true } });
+
+  const nextMonday = new Date(mondayOfUTCNow().getTime() + 7 * 864e5);
+  const stale = await prisma.order.findMany({
+    where: { subscriptionId: pk, plannedAt: { gte: nextMonday }, status: "Afventer levering", lockedFully: false },
+    select: { id: true },
+  });
+  if (stale.length) {
+    const ids = stale.map((o) => o.id);
+    await prisma.$transaction([
+      prisma.taskLine.deleteMany({ where: { orderId: { in: ids } } }),
+      prisma.order.deleteMany({ where: { id: { in: ids } } }),
+    ]);
+  }
+
   revalidatePath("/subscriptions");
+  revalidatePath("/orders");
+  revalidatePath("/calendar");
   revalidatePath(`/customers/${sub.contactId}`);
   redirect("/subscriptions");
+}
+
+/** Godkend et AFVENTENDE abonnement (dit trin 5: opkaldet bekræftede prisen):
+ *  aktivér det og materialisér de kommende ordrer med det samme. */
+export async function approveSubscription(pk: number): Promise<void> {
+  await guardAction();
+  const sub = await prisma.subscription.update({
+    where: { id: pk },
+    data: { active: true, pending: false },
+    select: { contactId: true, displayNo: true },
+  });
+  await generateForSubscriptionId(pk);
+  revalidatePath("/subscriptions");
+  revalidatePath("/orders");
+  revalidatePath("/calendar");
+  revalidatePath(`/customers/${sub.contactId}`);
+  redirect(`/subscriptions/${sub.displayNo}`);
+}
+
+/** Mandag (UTC midnat) i indeværende uge. */
+function mondayOfUTCNow(): Date {
+  const d = new Date();
+  const wd = (d.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - wd * 864e5);
 }
 
 export async function createSubscription(_prev: SubscriptionState, formData: FormData): Promise<SubscriptionState> {

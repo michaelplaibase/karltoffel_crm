@@ -258,7 +258,7 @@ export default function TeamCalendarClient(props: Props) {
                   <span className="h">{job.postal}</span>
                   <span className="s">
                     <i className="cat" style={{ "--cat": categoryColor(job.category) } as React.CSSProperties}>{catLetter(job.category)}</i>
-                    <span className="txt">{job.customer} · {job.reason === "unassigned" ? "Ikke tildelt kollega" : "Ingen plads i ugen"}</span>
+                    <span className="txt">{job.customer} · {job.reason === "unassigned" ? "Ikke tildelt kollega" : job.reason === "holiday" ? "Ferielukket uge — skal flyttes" : "Ingen plads i ugen"}</span>
                   </span>
                 </div>
               ))}

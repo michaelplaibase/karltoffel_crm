@@ -77,9 +77,12 @@ export default async function CustomerDetail({
                     <td><RowMenu items={[
                       { label: "Rediger abonnement", href: `/subscriptions/${s.id}` },
                       { label: "Stop abonnement…", danger: true, action: stopSubscription.bind(null, s.pk),
-                        confirm: { title: "Stop abonnement", body: `Vil du stoppe abonnement #${s.id}? Der oprettes ikke flere ordrer på abonnementet.`, confirmLabel: "Stop abonnement", note: "Denne handling kan ikke fortrydes." } },
+                        confirm: { title: "Stop abonnement", body: `Vil du stoppe abonnement #${s.id}? Der oprettes ikke flere ordrer, og kommende uleverede (ulåste) ordrer fjernes fra kalenderen.`, confirmLabel: "Stop abonnement", note: "Denne handling kan ikke fortrydes." } },
                     ]} /></td>
-                    <td className="num"><Link href={`/subscriptions/${s.id}`}>{s.id}</Link></td>
+                    <td className="num">
+                      <Link href={`/subscriptions/${s.id}`}>{s.id}</Link>
+                      {s.pending ? <span className="badge badge-soft-warning" style={{ marginLeft: 6 }}>Afventende</span> : null}
+                    </td>
                     <td>{s.deliveryAddress}</td>
                     <td>{s.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
                     <td>{s.tasks.map((t, i) => <div key={i}>{t.interval}</div>)}</td>

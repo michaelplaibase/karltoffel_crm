@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSubscriptionEditData, getContactOptions, getEmployeeNames } from "@/lib/queries";
-import { updateSubscription, stopSubscription } from "@/app/actions/subscriptions";
+import { updateSubscription, stopSubscription, approveSubscription } from "@/app/actions/subscriptions";
 import SubscriptionForm from "@/components/SubscriptionForm";
 import ConfirmButton from "@/components/ConfirmButton";
 
@@ -18,6 +18,24 @@ export default async function EditSubscription({ params }: { params: Promise<{ i
 
   return (
     <div className="container-1140">
+      {sub.pending && (
+        <div className="card" style={{ marginBottom: 16, borderLeft: "4px solid #ffb400" }}>
+          <div className="card-body" style={{ display: "flex", alignItems: "center", gap: 16, justifyContent: "space-between", flexWrap: "wrap" }}>
+            <div>
+              <b>Afventer godkendelse</b>
+              <div className="muted" style={{ fontSize: 13 }}>
+                Oprettet fra tilbudsmotor-lead. Ring til kunden, bekræft prisen — og godkend for at aktivere abonnementet og lægge ordrerne i kalenderen.
+              </div>
+            </div>
+            <ConfirmButton
+              action={approveSubscription.bind(null, sub.pk)}
+              label="Godkend abonnement" title="Godkend abonnement"
+              body={`Godkend abonnement #${sub.displayNo}? Abonnementet aktiveres, og de kommende ordrer lægges i kalenderen.`}
+              confirmLabel="Godkend"
+            />
+          </div>
+        </div>
+      )}
       <SubscriptionForm
         action={updateSubscription.bind(null, sub.pk)}
         contacts={contacts}
@@ -32,7 +50,7 @@ export default async function EditSubscription({ params }: { params: Promise<{ i
           <ConfirmButton
             action={stopSubscription.bind(null, sub.pk)}
             label="Stop abonnement" title="Stop abonnement"
-            body="Er du sikker på, at du vil stoppe abonnementet? Der oprettes ikke flere ordrer på abonnementet."
+            body="Er du sikker på, at du vil stoppe abonnementet? Der oprettes ikke flere ordrer, og kommende uleverede (ulåste) ordrer fjernes fra kalenderen."
             confirmLabel="Stop abonnement"
           />
         }

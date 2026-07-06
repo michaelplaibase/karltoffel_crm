@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { getDayProgram } from "@/lib/queries";
-import { WEEK_MONDAY } from "@/lib/calendar";
+import { weekMondayToday } from "@/lib/calendar";
 import DayStopCard from "@/components/DayStopCard";
 
 export const metadata = { title: "Dagsprogram · Karltoffel" };
 
 export default async function DayCalendarPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const sp = await searchParams;
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : WEEK_MONDAY;
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : weekMondayToday();
   const day = await getDayProgram(date);
 
   return (

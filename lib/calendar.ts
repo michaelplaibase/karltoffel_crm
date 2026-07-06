@@ -32,7 +32,7 @@ export type WeekDay = { label: string; date: string; revenue: number; driving?: 
 export type UnplannedJob = {
   id: number; postal: string; customer: string; category: string;
   status: CalStatus; contactId: number; subscriptionNo: number | null;
-  reason: "unassigned" | "overflow"; // no employee vs. didn't fit the week
+  reason: "unassigned" | "overflow" | "holiday"; // no employee / didn't fit / ferielukket uge
 };
 
 export type CalendarWeek = {
@@ -71,8 +71,15 @@ export type CalendarMonth = {
   grandTotal: MonthCell;
 };
 
-// The demo week the calendar/day-program open on (Monday of ISO week 27, 2026).
-export const WEEK_MONDAY = "2026-06-29";
+// Monday (UTC) of the CURRENT ISO week — calendar/day-program/new-order default
+// to "this week". A function (not a module constant) so long-lived lambda
+// instances never serve a stale week across a Sunday→Monday boundary.
+export function weekMondayToday(): string {
+  const now = new Date();
+  const wd = (now.getUTCDay() + 6) % 7; // 0 = Monday
+  const mon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - wd * 864e5);
+  return `${mon.getUTCFullYear()}-${String(mon.getUTCMonth() + 1).padStart(2, "0")}-${String(mon.getUTCDate()).padStart(2, "0")}`;
+}
 
 // working-hours window shown on the grid (business hours)
 export const WORK_START = 8;   // 08:00

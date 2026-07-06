@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSubscriptions, getContacts } from "@/lib/queries";
-import { regenerateOrders, stopSubscription } from "@/app/actions/subscriptions";
+import { regenerateOrders, stopSubscription, approveSubscription } from "@/app/actions/subscriptions";
 import { CatChip, CustomerCell, MapLink, money } from "@/components/ui";
 import RowMenu from "@/components/RowMenu";
 import { SearchBar, Pagination, paginate } from "@/components/ListControls";
@@ -44,11 +44,18 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                   return (
                     <tr key={s.id}>
                       <td><RowMenu items={[
+                        ...(s.pending
+                          ? [{ label: "Godkend abonnement…", action: approveSubscription.bind(null, s.pk),
+                              confirm: { title: "Godkend abonnement", body: `Godkend abonnement #${s.id}? Abonnementet aktiveres, og de kommende ordrer lægges i kalenderen.`, confirmLabel: "Godkend" } }]
+                          : []),
                         { label: "Rediger abonnement", href: `/subscriptions/${s.id}` },
                         { label: "Stop abonnement…", danger: true, action: stopSubscription.bind(null, s.pk),
-                          confirm: { title: "Stop abonnement", body: `Vil du stoppe abonnement #${s.id}? Der oprettes ikke flere ordrer på abonnementet.`, confirmLabel: "Stop abonnement", note: "Denne handling kan ikke fortrydes." } },
+                          confirm: { title: "Stop abonnement", body: `Vil du stoppe abonnement #${s.id}? Der oprettes ikke flere ordrer, og kommende uleverede (ulåste) ordrer fjernes fra kalenderen.`, confirmLabel: "Stop abonnement", note: "Denne handling kan ikke fortrydes." } },
                       ]} /></td>
-                      <td className="num"><Link href={`/subscriptions/${s.id}`}>{s.id}</Link></td>
+                      <td className="num">
+                        <Link href={`/subscriptions/${s.id}`}>{s.id}</Link>
+                        {s.pending ? <span className="badge badge-soft-warning" style={{ marginLeft: 6 }}>Afventende</span> : null}
+                      </td>
                       <td>{c ? <CustomerCell contact={c} withMap={false} /> : null}</td>
                       <td>{s.deliveryAddress}<div><MapLink address={s.deliveryAddress} /></div></td>
                       <td>{s.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>

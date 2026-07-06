@@ -138,8 +138,10 @@ model Subscription {
   fixedEmployee  String    @default("Ingen")
   notiOverride   Boolean   @default(false)
   active         Boolean   @default(true)
+  pending        Boolean   @default(false) // afventende godkendelse (lead konverteret, pris ikke bekræftet endnu) — active er false imens
   tasks          TaskLine[]
   orders         Order[]
+  weekSkips      SubscriptionWeekSkip[]
   createdAt      DateTime  @default(now())
 
   @@index([contactId])
@@ -174,12 +176,27 @@ model Order {
   lockedFully   Boolean   @default(false)
   comment       String?
   addressNote   String?
+  sourceWeek    DateTime? // rytme-ugens mandag ordren blev genereret FOR (dedup-nøgle — flytning ændrer den ikke; null for manuelle ordrer)
   tasks         TaskLine[]
   createdAt     DateTime  @default(now())
 
+  @@unique([subscriptionId, sourceWeek]) // concurrency-værn: cron + manuel generering kan ikke dobbelt-oprette en uge
   @@index([contactId])
   @@index([subscriptionId])
   @@index([plannedAt])
+}
+
+// Tombstone: en bruger har SLETTET en abonnements-ordre for denne uge — natte-
+// cronen må ikke genoplive den. Skrives af deleteOrder; regenerateFutureOrders
+// (redigering) rører den ikke, da dén sletning er tilsigtet gen-generering.
+model SubscriptionWeekSkip {
+  id             Int          @id @default(autoincrement())
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId Int
+  week           DateTime     // ugens mandag (UTC midnat)
+  createdAt      DateTime     @default(now())
+
+  @@unique([subscriptionId, week])
 }
 
 model DiscountCode {

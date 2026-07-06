@@ -69,6 +69,7 @@ function mapSubscription(s: SubRow): Subscription {
     interval: s.baseInterval,
     fixedEmployee: s.fixedEmployee,
     nextWeek: s.nextWeek ?? "",
+    pending: s.pending,
   };
 }
 
@@ -120,8 +121,13 @@ function mondayISOOf(d: Date): string {
   const midnight = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   return ymd(new Date(midnight - wd * 864e5));
 }
+/** Statusser der lukker en ordre — den kan ikke længere være "forfalden".
+ *  completeOrder skriver "Udført"/"Sprunget over" (app/actions/orders.ts);
+ *  "Skal genplanlægges"/"Anden status" er stadig handlingskrævende og
+ *  forbliver derfor flagget. */
+const CLOSED_STATUSES = new Set(["Afsluttet", "Udført", "Sprunget over"]);
 function isOverdue(plannedAt: Date, status: string): boolean {
-  if (status === "Afsluttet") return false;
+  if (CLOSED_STATUSES.has(status)) return false;
   const today = new Date();
   const startOfToday = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
   return plannedAt.getTime() < startOfToday;
@@ -205,8 +211,10 @@ export async function getSubscriptions(q?: string): Promise<Subscription[]> {
     { contact: contactOr(term) },
     { tasks: { some: { description: { contains: term, mode: "insensitive" } } } },
   ] } : undefined;
+  // Aktive + AFVENTENDE (pending) vises; kun stoppede (active=false, pending=false) skjules.
+  const visible: Prisma.SubscriptionWhereInput = { OR: [{ active: true }, { pending: true }] };
   const rows = await prisma.subscription.findMany({
-    where: search ? { AND: [{ active: true }, search] } : { active: true },
+    where: search ? { AND: [visible, search] } : visible,
     include: { tasks: true },
     orderBy: { displayNo: "desc" },
   });
@@ -215,7 +223,7 @@ export async function getSubscriptions(q?: string): Promise<Subscription[]> {
 
 export async function getSubscriptionsForContact(contactId: number): Promise<Subscription[]> {
   const rows = await prisma.subscription.findMany({
-    where: { contactId, active: true },
+    where: { contactId, OR: [{ active: true }, { pending: true }] },
     include: { tasks: true },
     orderBy: { displayNo: "desc" },
   });
@@ -234,6 +242,7 @@ export async function getSubscriptionEditData(displayNo: number) {
     startWeek: s.startWeek ?? "",
     fixedEmployee: s.fixedEmployee,
     deliveryAddress: s.deliveryAddress,
+    pending: s.pending,
     tasks: [...s.tasks].sort((a, b) => a.sort - b.sort).map((t) => ({
       description: t.description, price: String(t.price), duration: String(t.durationMin),
       category: t.category, interval: t.intervalMultiplier ?? "Hver gang", nextWeek: t.startWeek ?? "",
@@ -484,7 +493,9 @@ async function buildWeekPlan(weekMonday: string) {
   const holiday = await isHolidayWeek(weekMonday);
   const priceById = new Map<number, number>();
   const metaById = new Map<number, { subNo: number | null; status: string; tasks: TaskLine[]; comment: string; addressNote: string }>();
-  const jobs: Job[] = holiday ? [] : orders.map((o) => {
+  // Ferielukket uge: der PLANLÆGGES intet, men allerede-materialiserede ordrer
+  // må aldrig blive usynlige — de vises som "Ikke planlagt (ferielukket)".
+  const jobs: Job[] = orders.map((o) => {
     priceById.set(o.id, o.tasks.reduce((a, t) => a + t.price, 0));
     metaById.set(o.id, {
       subNo: o.subscription?.displayNo ?? null, status: o.status,
@@ -507,13 +518,15 @@ async function buildWeekPlan(weekMonday: string) {
   // else lands in "unplanned" (they must never be dumped on the first lane).
   const plannerEmps = plannerEmployeesFrom(users);
   const activeIds = new Set(users.map((u) => u.id));
-  const placeable = jobs.filter((j) => j.fixedEmployeeId != null && activeIds.has(j.fixedEmployeeId));
-  const unassigned = jobs.filter((j) => j.fixedEmployeeId == null || !activeIds.has(j.fixedEmployeeId));
+  const placeable = holiday ? [] : jobs.filter((j) => j.fixedEmployeeId != null && activeIds.has(j.fixedEmployeeId));
+  const unassigned = holiday ? [] : jobs.filter((j) => j.fixedEmployeeId == null || !activeIds.has(j.fixedEmployeeId));
   const plan = planWeek(placeable, weekMonday, plannerEmps);
-  const unplanned: { job: Job; reason: "unassigned" | "overflow" }[] = [
-    ...plan.unplanned.map((job) => ({ job, reason: "overflow" as const })),
-    ...unassigned.map((job) => ({ job, reason: "unassigned" as const })),
-  ];
+  const unplanned: { job: Job; reason: "unassigned" | "overflow" | "holiday" }[] = holiday
+    ? jobs.map((job) => ({ job, reason: "holiday" as const }))
+    : [
+        ...plan.unplanned.map((job) => ({ job, reason: "overflow" as const })),
+        ...unassigned.map((job) => ({ job, reason: "unassigned" as const })),
+      ];
   const empName = new Map(users.map((u) => [u.id, `${u.firstName} ${u.lastName}`]));
   return { start, plan, priceById, metaById, users, empName, holiday, unplanned };
 }

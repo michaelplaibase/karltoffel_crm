@@ -69,17 +69,37 @@ const STATUS: Record<string, string> = {
 };
 
 /** Delete an order and its task lines. `redirectTo=null` stays on the current
- *  page (used by the calendar), otherwise navigates there (lists default to /orders). */
+ *  page (used by the calendar), otherwise navigates there (lists default to /orders).
+ *  Abonnements-ordrer efterlader en uge-tombstone, så natte-genereringen ikke
+ *  genopliver den slettede uge (lib/recurrence.ts respekterer SubscriptionWeekSkip). */
 export async function deleteOrder(orderId: number, redirectTo: string | null = "/orders"): Promise<void> {
   await guardAction();
+  const o = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { subscriptionId: true, sourceWeek: true, plannedAt: true },
+  });
+  if (!o) return;
+  const week = o.sourceWeek ?? mondayOfUTC(o.plannedAt); // fallback for rækker fra før sourceWeek-migrationen
   await prisma.$transaction([
     prisma.taskLine.deleteMany({ where: { orderId } }),
     prisma.order.delete({ where: { id: orderId } }),
+    ...(o.subscriptionId != null
+      ? [prisma.subscriptionWeekSkip.createMany({
+          data: [{ subscriptionId: o.subscriptionId, week }],
+          skipDuplicates: true,
+        })]
+      : []),
   ]);
   revalidatePath("/orders");
   revalidatePath("/calendar");
   revalidatePath("/daycalendar");
   if (redirectTo) redirect(redirectTo);
+}
+
+/** Mandag (UTC midnat) i ugen der indeholder `d` — tombstone-nøglen. */
+function mondayOfUTC(d: Date): Date {
+  const wd = (d.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - wd * 864e5);
 }
 
 function revalidateSchedule(orderId?: number) {

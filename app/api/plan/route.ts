@@ -3,6 +3,7 @@ import { planWeek, isoWeek } from "@/lib/planner";
 import { getPlannerJobs } from "@/lib/queries";
 import { generateAllSubscriptionOrders } from "@/lib/recurrence";
 import { requireSession, unauthorized } from "@/lib/api-auth";
+import { weekMondayToday } from "@/lib/calendar";
 
 // GET /api/plan?week=YYYY-MM-DD
 // The nightly cron (see vercel.json) hits this to (1) materialise upcoming
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
   if (!isCron && (await requireSession()) == null) return unauthorized();
 
   const url = new URL(req.url);
-  const week = url.searchParams.get("week") || "2026-06-29";
+  const week = url.searchParams.get("week") || weekMondayToday();   /* i nat-cronen: DENNE uge, ikke en frossen demo-uge */
   const generated = await generateAllSubscriptionOrders();
   const jobs = await getPlannerJobs(week);
   const plan = planWeek(jobs, week);

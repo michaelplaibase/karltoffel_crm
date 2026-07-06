@@ -1,6 +1,16 @@
 export const metadata = { title: "Rapporter · Karltoffel" };
 
+/** Indeværende måneds første/sidste dag (UTC) som YYYY-MM-DD — rapportens default-periode. */
+function monthRange(): { start: string; end: string } {
+  const now = new Date();
+  const y = now.getUTCFullYear(), m = now.getUTCMonth();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return { start: `${y}-${pad(m + 1)}-01`, end: `${y}-${pad(m + 1)}-${pad(last)}` };
+}
+
 export default function ReportDownloadPage() {
+  const { start, end } = monthRange();
   return (
     <div className="container-1140" style={{ maxWidth: 760 }}>
       <h1 className="page-title">Rapporter</h1>
@@ -12,11 +22,11 @@ export default function ReportDownloadPage() {
           <form action="/api/reports/orders" method="get">
             <div className="f2">
               <label className="col-label">Startdato</label>
-              <input className="form-control" type="date" name="start" defaultValue="2026-06-01" />
+              <input className="form-control" type="date" name="start" defaultValue={start} />
             </div>
             <div className="f2">
               <label className="col-label">Slutdato</label>
-              <input className="form-control" type="date" name="end" defaultValue="2026-06-30" />
+              <input className="form-control" type="date" name="end" defaultValue={end} />
             </div>
             <hr className="section-hr" />
             <button className="btn btn-primary" type="submit">Hent rapport</button>

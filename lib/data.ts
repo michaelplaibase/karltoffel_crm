@@ -38,6 +38,7 @@ export type Subscription = {
   interval: string;
   fixedEmployee: string;
   nextWeek: string;
+  pending: boolean; // afventer godkendelse efter bekræftelses-opkaldet
 };
 
 export type OrderStatus = "Afventer levering" | "Afsluttet" | "Mislykket planlægning";

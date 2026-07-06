@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getContactOptions } from "@/lib/queries";
 import { createOrder } from "@/app/actions/orders";
 import { isoWeek } from "@/lib/planner";
-import { WEEK_MONDAY } from "@/lib/calendar";
+import { weekMondayToday } from "@/lib/calendar";
 import OrderCreateForm, { type WeekOption } from "@/components/OrderCreateForm";
 
 export const metadata = { title: "Opret ny ordre · Karltoffel" };
@@ -34,7 +34,7 @@ export default async function NewOrder({ searchParams }: { searchParams: Promise
       <OrderCreateForm
         action={createOrder}
         contacts={contacts}
-        weekOptions={weekOptions(WEEK_MONDAY, 12)}
+        weekOptions={weekOptions(weekMondayToday(), 12)}
         initialContactId={initialContactId}
       />
     </div>

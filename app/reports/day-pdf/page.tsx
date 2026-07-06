@@ -1,6 +1,7 @@
 export const metadata = { title: "Dagsprogram i PDF · Karltoffel" };
 
 export default function DayPdfPage() {
+  const today = new Date().toISOString().slice(0, 10);
   return (
     <div className="container-1140" style={{ maxWidth: 760 }}>
       <h1 className="page-title">Dagsprogram</h1>
@@ -17,7 +18,7 @@ export default function DayPdfPage() {
             </div>
             <div className="f2">
               <label className="col-label">Dato</label>
-              <input className="form-control" type="date" name="date" defaultValue="2026-06-29" />
+              <input className="form-control" type="date" name="date" defaultValue={today} />
             </div>
             <hr className="section-hr" />
             <button className="btn btn-primary" type="submit">Hent dagsprogram</button>
