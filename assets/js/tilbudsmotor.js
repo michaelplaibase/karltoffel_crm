@@ -76,6 +76,7 @@ function kr(n){ return DKK0.format(Math.round(n)) + " kr"; }
 /* ============ STATE ============ */
 const state = {
   adresse: "",
+  kundetype: null,   /* "privat" | "erhverv" — vælges på step 2 */
   ejendom: { type:"Villa, 1 fam.", grund:"827 m²", opfoert:"2007", haek:"65 m" }
 };
 
@@ -224,7 +225,9 @@ function vaelgAdresse(titel){
   if(window.KARLTOFFEL && window.KARLTOFFEL.measureProperty){
     window.KARLTOFFEL.measureProperty(titel).then(function(m){ if(req === measureReq) applyMeasurements(m); });
   }
-  koerGravning(()=> visStep("step-verify"));
+  /* Videre til privat/erhverv-valget; gravningen kører først ved "Videre" derfra
+     (skråfoto + auto-mål er allerede sat i gang i baggrunden ovenfor). */
+  visStep("step-kundetype");
 }
 
 function koerGravning(done){
@@ -259,6 +262,39 @@ function visStep(id){
   if(h){ h.setAttribute("tabindex","-1"); h.focus({ preventScroll:true }); }
 }
 
+/* ============ KUNDETYPE (privat/erhverv) ============ */
+const ktPrivat = $("kt-privat"), ktErhverv = $("kt-erhverv"),
+      ktVidere = $("kt-videre"), ktNote = $("kt-note");
+function vaelgKundetype(t){
+  state.kundetype = t;
+  ktPrivat.classList.toggle("selected", t === "privat");
+  ktErhverv.classList.toggle("selected", t === "erhverv");
+  ktPrivat.setAttribute("aria-checked", t === "privat" ? "true" : "false");
+  ktErhverv.setAttribute("aria-checked", t === "erhverv" ? "true" : "false");
+  ktNote.classList.toggle("show", t === "erhverv");
+  ktVidere.disabled = false;
+}
+ktPrivat.addEventListener("click", ()=> vaelgKundetype("privat"));
+ktErhverv.addEventListener("click", ()=> vaelgKundetype("erhverv"));
+ktVidere.addEventListener("click", ()=>{
+  if(!state.kundetype) return;
+  koerGravning(()=> visStep("step-verify"));
+});
+$("kt-tilbage").addEventListener("click", ()=> visStep("step-adresse"));
+
+/* ============ VIDERE/TILBAGE-NAVIGATION ============ */
+/* Step 1: "Videre" kræver en adresse. Er der tekst i feltet, men intet valg
+   fra listen, bruger vi det indtastede som adresse (API'et kan være nede). */
+$("adr-videre").addEventListener("click", ()=>{
+  const q = adrInput.value.trim();
+  if(state.adresse && q === state.adresse){ visStep("step-kundetype"); return; }
+  if(q.length >= 3){ vaelgAdresse(q); return; }
+  adrInput.focus();
+});
+$("vf-tilbage").addEventListener("click", ()=> visStep("step-kundetype"));
+$("ls-tilbage").addEventListener("click", ()=> visStep("step-verify"));
+$("ls-videre").addEventListener("click", ()=> visStep("step-kontakt"));
+
 $("btn-ja").addEventListener("click", ()=> visStep("step-losning"));
 btnNej.addEventListener("click", ()=>{
   verifyDir++;
@@ -283,8 +319,9 @@ $("btn-send").addEventListener("click", ()=>{
   const r = beregn(PRODUCTS);
   const valgt = PRODUCTS.filter(p=>p.on);
   const opsum = $("tak-opsum");
+  const ktLabel = state.kundetype === "erhverv" ? " · Erhverv" : (state.kundetype === "privat" ? " · Privat" : "");
   if(!valgt.length){
-    opsum.innerHTML = "<b>" + esc(state.adresse) + "</b><br>Du har ikke valgt nogen services endnu — vi ringer og sammensætter løsningen med dig.<br><br>Demo: intet er sendt endnu.";
+    opsum.innerHTML = "<b>" + esc(state.adresse) + ktLabel + "</b><br>Du har ikke valgt nogen services endnu — vi ringer og sammensætter løsningen med dig.<br><br>Demo: intet er sendt endnu.";
     visStep("step-tak"); return;
   }
   const linjer = valgt.map(p=>{
@@ -293,7 +330,7 @@ $("btn-send").addEventListener("click", ()=>{
     return esc(p.navn) + suffix;
   }).join(", ");
   opsum.innerHTML =
-    "<b>" + esc(state.adresse) + "</b><br>" +
+    "<b>" + esc(state.adresse) + ktLabel + "</b><br>" +
     "Valgt: " + linjer + "<br>" +
     "Estimeret: <b>" + kr(r.md) + "/md</b> ved " + r.visits + " besøg om året.<br><br>" +
     "Demo: intet er sendt endnu. I produktion oprettes lead + tilbud i WorkMaker her.";

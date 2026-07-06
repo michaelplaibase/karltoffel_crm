@@ -23,7 +23,7 @@ Besøg os på www.bubble.dk eller ring til os på +45 6069 8700
 		<link rel="apple-touch-icon" href="/assets/img/design/appicon.png">
 	<link rel="stylesheet" href="/assets/css/typekit.css">
 	<link rel="stylesheet" type="text/css" href="/assets/css/style.css">
-	<link rel="stylesheet" href="/assets/css/tilbudsmotor.css?v=9">
+	<link rel="stylesheet" href="/assets/css/tilbudsmotor.css?v=10">
 	<link rel="stylesheet" href="/assets/css/spacing.css">
 		<link rel="preload" as="image"
 		href="/assets/img/thumb/e2a541dff09c05bfe2957c4875f7dfe5e570401c_w2000.webp"
@@ -280,9 +280,35 @@ Besøg os på www.bubble.dk eller ring til os på +45 6069 8700
 	      <div class="adr-list" id="adr-list" role="listbox" aria-label="Adresseforslag"></div>
 	      <p class="adr-note" id="adr-note">Live adresseopslag svarer ikke her. Vælg en demo-adresse i listen.</p>
 	    </div>
+	    <div class="tm-nav">
+	      <button class="btn btn-ja" id="adr-videre">Videre</button>
+	    </div>
 	  </section>
 
-	  <!-- STEP 2 -->
+	  <!-- STEP 2: PRIVAT / ERHVERV -->
+	  <section class="step ktype" id="step-kundetype" aria-labelledby="tm-h2p">
+	    <h2 id="tm-h2p">Hvem gør vi det for?</h2>
+	    <p class="ktype-sub">Vælg om adressen er privat eller erhverv — så rammer vi rigtigt fra start.</p>
+	    <div class="ktype-cards" role="radiogroup" aria-label="Privat eller erhverv">
+	      <button type="button" class="ktype-card" id="kt-privat" role="radio" aria-checked="false">
+	        <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M8 22 24 8l16 14" stroke="#FFF87B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 20v20h24V20" stroke="#FFF87B" stroke-width="3" stroke-linejoin="round"/><path d="M20 40V28h8v12" stroke="#FFF87B" stroke-width="3" stroke-linejoin="round"/></svg>
+	        <b>Privat</b>
+	        <small>Villa, rækkehus eller sommerhus</small>
+	      </button>
+	      <button type="button" class="ktype-card" id="kt-erhverv" role="radio" aria-checked="false">
+	        <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="10" y="8" width="20" height="32" stroke="#FFF87B" stroke-width="3" stroke-linejoin="round"/><path d="M30 18h8v22H10" stroke="#FFF87B" stroke-width="3" stroke-linejoin="round"/><path d="M16 15h3M21 15h3M16 21h3M21 21h3M16 27h3M21 27h3" stroke="#FFF87B" stroke-width="3" stroke-linecap="round"/></svg>
+	        <b>Erhverv</b>
+	        <small>Virksomhed, udlejning eller forening</small>
+	      </button>
+	    </div>
+	    <p class="ktype-note" id="kt-note">Erhverv: prisen her er vejledende — vi skræddersyr tilbuddet, når vi ringer.</p>
+	    <div class="tm-nav">
+	      <button class="btn btn-nej" id="kt-tilbage">Tilbage</button>
+	      <button class="btn btn-ja" id="kt-videre" disabled>Videre</button>
+	    </div>
+	  </section>
+
+	  <!-- STEP 3 -->
 	  <section class="step verify" id="step-verify" aria-labelledby="tm-h2v">
 	    <h2 id="tm-h2v">Er det her din ejendom?</h2>
 	    <div class="adr" id="verify-adr"></div>
@@ -311,9 +337,12 @@ Besøg os på www.bubble.dk eller ring til os på +45 6069 8700
 	      <button class="btn btn-nej" id="btn-nej">Nej, prøv igen</button>
 	    </div>
 	    <small id="sf-note">Rigtige skråfotos kobles på via Dataforsyningens Skraafoto-API.</small>
+	    <div class="tm-nav">
+	      <button class="btn btn-nej" id="vf-tilbage">Tilbage</button>
+	    </div>
 	  </section>
 
-	  <!-- STEP 3 -->
+	  <!-- STEP 4 -->
 	  <section class="step losning" id="step-losning" aria-labelledby="tm-h2l">
 	    <h2 id="tm-h2l" style="position:absolute;left:-9999px">Din løsning</h2>
 	    <div class="topbar">
@@ -340,9 +369,13 @@ Besøg os på www.bubble.dk eller ring til os på +45 6069 8700
 	    <p class="addons-intro">Mangler du noget på listen? Vi tilbyder også…</p>
 	    <div class="addons" id="addons"></div>
 	    <p class="gaps">Priser fra WorkMaker. Services markeret "indeholdt / pris ved besøg" aftales ved kontakt.</p>
+	    <div class="tm-nav">
+	      <button class="btn btn-nej" id="ls-tilbage">Tilbage</button>
+	      <button class="btn btn-ja" id="ls-videre">Videre</button>
+	    </div>
 	  </section>
 
-	  <!-- STEP 4 -->
+	  <!-- STEP 5 -->
 	  <section class="step kontakt" id="step-kontakt" aria-labelledby="tm-h2k">
 	    <h2 id="tm-h2k">Næsten i mål</h2>
 	    <p>Vi ringer og bekræfter tallene, før noget koster dig en krone.</p>
@@ -361,7 +394,7 @@ Besøg os på www.bubble.dk eller ring til os på +45 6069 8700
 	    </div>
 	  </section>
 
-	  <!-- STEP 5 -->
+	  <!-- STEP 6 -->
 	  <section class="step tak" id="step-tak" aria-labelledby="tm-h2t">
 	    <h2 id="tm-h2t">Tak, heldige karltoffel</h2>
 	    <p>Vi ringer inden for 24 timer og bekræfter din pris. Naboen bliver grøn af misundelse.</p>
@@ -1119,6 +1152,6 @@ Besøg os på www.bubble.dk eller ring til os på +45 6069 8700
 			<script src="/assets/js/tilbudsmotor.config.js?v=9"></script>
 			<script src="/assets/js/vendor/geotiff.min.js"></script>
 			<script src="/assets/js/skraafoto.js?v=9"></script>
-			<script src="/assets/js/tilbudsmotor.js?v=9"></script>
+			<script src="/assets/js/tilbudsmotor.js?v=10"></script>
 </body>
 </html>
