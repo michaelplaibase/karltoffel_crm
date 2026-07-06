@@ -46,9 +46,13 @@ export async function convertLead(id: number): Promise<void> {
   if (!company) return;
   const { street, city } = splitAddress(lead.address ?? "");
 
+  // Tilbudsmotorens kundetype følger med over: erhverv → firmakunde.
+  let isCompany = false;
+  try { isCompany = lead.payload ? (JSON.parse(lead.payload) as { kundetype?: string }).kundetype === "erhverv" : false; } catch { /* korrupt payload ignoreres */ }
+
   const contact = await prisma.$transaction(async (tx) => {
     const c = await tx.contact.create({
-      data: { companyId: company.id, name: lead.name, email: lead.email, phone: lead.phone, street, city },
+      data: { companyId: company.id, name: lead.name, email: lead.email, phone: lead.phone, street, city, isCompany },
     });
     await tx.lead.update({ where: { id }, data: { status: "converted", contactId: c.id } });
     return c;

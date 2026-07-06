@@ -25,7 +25,7 @@ export default function LoginForm() {
           {state.error && <div style={{ color: "#c0392b", fontSize: 13, margin: "4px 0 8px" }}>{state.error}</div>}
 
           <div className="savebar">
-            <span className="field-help">Demo: kristianklercke / karltoffel</span>
+            <span className="field-help" />
             <button type="submit" className="btn btn-primary" disabled={pending}>
               {pending ? "Logger ind…" : "Log ind"}
             </button>

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { unauthorized } from "@/lib/api-auth";
 import { underLimit, recordHit } from "@/lib/rate-limit";
+import { bookCallEvent } from "@/lib/gcal";
 import type { NextRequest } from "next/server";
 
 // Inbound lead webhook for the public website form. No session cookie —
@@ -35,6 +36,41 @@ function json(body: unknown, status = 200): Response {
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const normEmail = (e: string) => e.toLowerCase();
 const normPhone = (p: string) => p.replace(/[^\d]/g, "").replace(/^(45|0045)(?=\d{8}$)/, "");
+const num = (v: unknown, max: number) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.min(v, max) : 0);
+
+/** Tilbudsmotorens payload: valgte services + estimat + kundetype. Alt er
+ *  valgfrit og valideres felt for felt — ukendte/ugyldige rækker droppes. */
+type TmService = { id: string; navn: string; wm: string | null; qty: number; enhed: string; freq: number; pris: number | null };
+function parseTmPayload(body: Record<string, unknown>): { payloadJson: string | null; kundetype: string | null; services: TmService[]; estimatMd: number } {
+  const kt = str(body.kundetype, 10).toLowerCase();
+  const kundetype = kt === "privat" || kt === "erhverv" ? kt : null;
+
+  const services: TmService[] = (Array.isArray(body.services) ? body.services.slice(0, 40) : []).flatMap((row) => {
+    if (!row || typeof row !== "object") return [];
+    const s = row as Record<string, unknown>;
+    const navn = str(s.navn, 120);
+    if (!navn) return [];
+    return [{
+      id: str(s.id, 40) || "ukendt",
+      navn,
+      wm: str(s.wm, 120) || null,           // WorkMaker-produktnavn (join-nøgle under overgangen)
+      qty: num(s.qty, 100_000),
+      enhed: str(s.enhed, 40),
+      freq: num(s.freq, 366),
+      pris: typeof s.pris === "number" && Number.isFinite(s.pris) && s.pris >= 0 ? Math.min(s.pris, 1_000_000) : null,
+    }];
+  });
+
+  const e = body.estimat && typeof body.estimat === "object" ? (body.estimat as Record<string, unknown>) : {};
+  const estimat = { md: num(e.md, 10_000_000), aar: num(e.aar, 100_000_000), visits: num(e.visits, 366), count: num(e.count, 100) };
+
+  const payloadJson = kundetype || services.length
+    ? JSON.stringify({ kundetype, services, estimat })
+    : null;
+  return { payloadJson, kundetype, services, estimatMd: estimat.md };
+}
+
+const DKK = new Intl.NumberFormat("da-DK", { maximumFractionDigits: 0 });
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
@@ -78,6 +114,7 @@ export async function POST(req: NextRequest) {
 
   const message = str(body.message, 2000) || null;
   const address = str(body.address, 300) || null;
+  const tm = parseTmPayload(body);
 
   // Dedup: merge into an OPEN lead (<=30 days) with the same normalised email/phone.
   const since = new Date(Date.now() - 30 * 86_400_000);
@@ -96,8 +133,10 @@ export async function POST(req: NextRequest) {
         email: existing.email ?? email,
         phone: existing.phone ?? phone,
         address: existing.address ?? address,
+        payload: tm.payloadJson ?? existing.payload,   // nyeste pakkevalg vinder
       },
     });
+    // Ingen ny kalender-booking ved dedup — det åbne lead har allerede sit opkalds-slot.
     return json({ id: existing.id, deduplicated: true }, 200);
   }
 
@@ -111,8 +150,40 @@ export async function POST(req: NextRequest) {
     data: {
       companyId: company.id, name, email, phone, address, message,
       source: str(body.source, 50) || "website", utm, ip,
+      payload: tm.payloadJson,
       contactId: known?.id ?? null,
     },
   });
-  return json({ id: lead.id, deduplicated: false }, 201);
+
+  // Book 15-min opkalds-slot i den fælles kalender — hurtigst muligt (lead
+  // 15:00 → slot 15:15). Må ALDRIG vælte lead-oprettelsen: fejl logges og
+  // rapporteres i svaret, men leadet er allerede gemt.
+  let call: string = "skipped";
+  try {
+    const lines = tm.services.slice(0, 12).map((s) =>
+      `• ${s.navn}${s.qty ? ` — ${DKK.format(s.qty)} ${s.enhed}` : ""}${s.freq ? ` × ${s.freq}/år` : ""}`);
+    if (tm.services.length > 12) lines.push(`… og ${tm.services.length - 12} mere`);
+    const desc = [
+      `Nyt lead fra tilbudsmotoren — ring op, bekræft prisen og konvertér.`,
+      ``,
+      `Navn: ${name}`,
+      phone ? `Telefon: ${phone}` : null,
+      email ? `E-mail: ${email}` : null,
+      address ? `Adresse: ${address}` : null,
+      tm.kundetype ? `Kundetype: ${tm.kundetype === "erhverv" ? "Erhverv" : "Privat"}` : null,
+      tm.estimatMd ? `Estimat: ${DKK.format(tm.estimatMd)} kr/md` : null,
+      lines.length ? `` : null,
+      ...lines,
+      ``,
+      `CRM: https://karltoffel-crm.vercel.app/leads`,
+    ].filter((l): l is string => l !== null).join("\n");
+    const booked = await bookCallEvent({ summary: `☎️ Ring til ${name} (nyt lead #${lead.id})`, description: desc });
+    call = booked.simulated ? "simulated" : booked.ok ? `booked ${booked.slot.start}` : `failed: ${booked.error}`;
+    if (!booked.ok) console.error(`[leads] kalender-booking fejlede for lead ${lead.id}: ${booked.error}`);
+  } catch (e) {
+    call = "failed";
+    console.error(`[leads] kalender-booking exception for lead ${lead.id}:`, e);
+  }
+
+  return json({ id: lead.id, deduplicated: false, call }, 201);
 }

@@ -210,6 +210,7 @@ model Lead {
   message   String?
   source    String   @default("website")  // website | manual | partner | ...
   utm       String?                       // JSON blob string (schema has no Json type)
+  payload   String?                       // JSON blob string fra tilbudsmotoren: {kundetype, services[], estimat}
   ip        String?                       // submitter IP for abuse forensics
   contact   Contact? @relation(fields: [contactId], references: [id])
   contactId Int?                          // set when converted to a customer
