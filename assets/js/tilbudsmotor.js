@@ -481,11 +481,15 @@ function renderRows(){
 
     const chk = document.createElement("input");
     chk.type = "checkbox"; chk.checked = true; chk.dataset.pid = p.id;
+    chk.id = "chk-" + p.id;
     chk.setAttribute("aria-label", "Fravælg " + p.navn);
     chk.addEventListener("change", ()=>{ p.on = false; renderLosning(); focusById(p.id); });
 
-    const navn = document.createElement("div");
+    /* Titlen er en <label for=checkbox>, så hele navnefeltet toggler rækken —
+       28px-checkboxen alene er for lille et touch-mål. */
+    const navn = document.createElement("label");
     navn.className = "navn";
+    navn.htmlFor = chk.id;
     const sub = priced ? (p.note + " · " + DKK2.format(p.pris) + " kr pr. " + prisEnh(p)) : p.note;
     navn.innerHTML = "<b>" + esc(p.navn) + "</b><small>" + esc(sub) + "</small>";
 

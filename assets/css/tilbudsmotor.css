@@ -16,7 +16,7 @@
 /* --- scope-rod: variabler + "body"-styles fra demoen ---------------------- */
 .tm-flow{
   --brun:#4C3718; --gul:#FFF87B; --ivory:#FFFFF0; --bronze:#86612A;
-  --roed:#CC4B37; --graa:#CACACA;
+  --roed:#CC4B37; --roed-moerk:#9E3322; --graa:#CACACA;
   --display:"snaga-unicase-display","DM Sans",sans-serif;
   --body:"DM Sans",system-ui,sans-serif;
 
@@ -34,7 +34,7 @@
 /* Klik virker på ALLE labels i flowet (ophæver sidens globale label{pointer-events:none}). */
 .tm-flow label{pointer-events:auto}
 /* Mørk fokus-ring på lyse flader (gul-på-gul ellers usynlig). */
-.tm-flow .row :focus-visible,.tm-flow .topbar :focus-visible,.tm-flow .qty input:focus-visible,.tm-flow .kontakt input:focus-visible,.tm-flow .kontakt textarea:focus-visible{outline-color:var(--brun)}
+.tm-flow .row :focus-visible,.tm-flow .topbar :focus-visible,.tm-flow .qty input:focus-visible,.tm-flow .kontakt input:focus-visible,.tm-flow .kontakt textarea:focus-visible,.tm-flow .cta-bar :focus-visible,.tm-flow .adr-list :focus-visible{outline-color:var(--brun)}
 
 .tm-flow .tm-main{max-width:1040px;margin:0 auto;padding:48px 24px 64px}
 .tm-flow .step{display:none}
@@ -47,15 +47,16 @@
 
 /* STEP 1: HERO */
 .tm-flow .hero{padding:40px 0 48px;text-align:center}
-.tm-flow .hero h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,64px);line-height:1.04;color:var(--gul);letter-spacing:.01em}
+/* h2 (ikke h1): sidens dokument-outline må kun have ét h1 — hero-overskriften her er sektionens */
+.tm-flow .hero h2{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,64px);line-height:1.04;color:var(--gul);letter-spacing:.01em}
 .tm-flow .hero p.sub{margin:18px auto 0;max-width:520px;font-size:18px;color:var(--ivory);opacity:.92}
 .tm-flow .adr-wrap{position:relative;max-width:640px;margin:40px auto 0;text-align:left}
 .tm-flow .adr-label{display:block;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--gul);margin:0 0 8px 4px}
 .tm-flow #adr-input{width:100%;padding:20px 22px;font-size:19px;border:0;border-radius:14px;background:var(--ivory);color:var(--brun)}
-.tm-flow #adr-input::placeholder{color:#8a7d5e}
+.tm-flow #adr-input::placeholder{color:#7d7052}   /* ≥4.5:1 på ivory (AA) */
 .tm-flow .adr-list{position:absolute;left:0;right:0;top:calc(100% + 8px);background:var(--ivory);color:var(--brun);border-radius:14px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.35);z-index:30;display:none}
 .tm-flow .adr-list.open{display:block}
-.tm-flow .adr-list button{display:block;width:100%;text-align:left;padding:13px 20px;background:none;border:0;font-size:16px;color:var(--brun)}
+.tm-flow .adr-list button{display:block;width:100%;text-align:left;padding:15px 20px;background:none;border:0;font-size:16px;color:var(--brun)}   /* ≈46px rækker (touch) */
 .tm-flow .adr-list button:hover,.tm-flow .adr-list button:focus-visible{background:var(--gul)}
 .tm-flow .adr-list .hint{padding:10px 20px;font-size:13px;color:var(--bronze);border-top:1px dashed var(--graa)}
 .tm-flow .adr-note{margin:14px 4px 0;font-size:13px;color:var(--gul);opacity:.85;display:none}
@@ -108,7 +109,7 @@
 .tm-flow .verify h2{font-family:var(--display);font-size:clamp(26px,4vw,40px);color:var(--gul)}
 .tm-flow .verify .adr{margin-top:8px;font-size:17px;opacity:.9}
 .tm-flow .foto-card{position:relative;max-width:640px;margin:28px auto 0;border-radius:18px;overflow:hidden;background:var(--ivory)}
-.tm-flow .foto-badge{position:absolute;top:14px;left:14px;z-index:2;background:var(--brun);color:var(--gul);font-size:11px;letter-spacing:.12em;padding:6px 10px;border-radius:999px;text-transform:uppercase}
+.tm-flow .foto-badge{position:absolute;top:14px;left:14px;z-index:2;background:var(--brun);color:var(--gul);font-size:12px;letter-spacing:.12em;padding:6px 10px;border-radius:999px;text-transform:uppercase}
 .tm-flow .sf-canvas{display:none;width:100%;height:auto;vertical-align:top}
 .tm-flow .foto-card.has-photo .sf-canvas{display:block}
 .tm-flow .foto-card.has-photo>svg{display:none}
@@ -117,9 +118,9 @@
 @keyframes sfShimmer{from{background-position:180% 0}to{background-position:-80% 0}}
 @media (prefers-reduced-motion: reduce){.tm-flow .foto-card.sf-loading::after{animation:none}}
 .tm-flow .verify-btns{display:flex;gap:14px;justify-content:center;margin-top:28px;flex-wrap:wrap}
-.tm-flow .btn{border:0;border-radius:12px;padding:16px 30px;font-size:17px;font-weight:700}
+.tm-flow .btn{border:2px solid transparent;border-radius:12px;padding:16px 30px;font-size:17px;font-weight:700}   /* transparent border = højde-paritet med btn-nej's bronze-border */
 .tm-flow .btn-ja{background:var(--gul);color:var(--brun)}
-.tm-flow .btn-nej{background:transparent;color:var(--ivory);border:2px solid var(--bronze)}
+.tm-flow .btn-nej{background:transparent;color:var(--ivory);border-color:var(--bronze)}
 .tm-flow .btn-ja:hover{filter:brightness(1.05)}
 .tm-flow .verify small{display:block;margin-top:16px;opacity:.65;font-size:13px}
 .tm-flow .sf-angle-hint{display:none;margin-top:14px;color:var(--gul);font-size:14px;opacity:.9}
@@ -141,7 +142,7 @@
 .tm-flow #t-pris{color:var(--brun)}
 .tm-flow .demo-hint{font-size:12px;color:var(--bronze);margin-top:12px}
 
-.tm-flow .socio{margin:30px 4px 12px;font-size:15px;color:var(--gul)}
+.tm-flow .socio{margin:30px 0 12px;font-size:15px;color:var(--gul)}   /* flugter med kort-grid'et */
 .tm-flow .rows{display:flex;flex-direction:column;gap:12px}
 .tm-flow .row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:16px;align-items:center;background:var(--gul);color:var(--brun);border-radius:16px;padding:16px 18px}
 .tm-flow .row--noqty{grid-template-columns:auto minmax(0,1fr) auto auto}
@@ -154,12 +155,12 @@
 /* 16px font: under 16 zoomer iOS ind ved fokus */
 .tm-flow .qty input{width:72px;padding:7px 8px;border-radius:8px;border:1.5px solid var(--bronze);background:#fff;color:var(--brun);font-size:16px;text-align:right}
 .tm-flow .freq{display:flex;align-items:center;gap:10px;justify-self:end}
-.tm-flow .freq button{width:34px;height:34px;border-radius:10px;border:0;background:var(--brun);color:var(--gul);font-size:19px;font-weight:700;line-height:1}
+.tm-flow .freq button{width:44px;height:44px;border-radius:10px;border:0;background:var(--brun);color:var(--gul);font-size:19px;font-weight:700;line-height:1}   /* 44px touch-mål på ALLE bredder (også tablets) */
 .tm-flow .freq button:disabled{opacity:.3;cursor:default}
 .tm-flow .freq .fv{min-width:74px;text-align:center;font-size:14px}
 .tm-flow .row .pris{justify-self:end;text-align:right;min-width:110px}
 .tm-flow .row .pris b{font-size:17px}
-.tm-flow .row .pris small{display:block;font-size:11.5px;color:var(--bronze)}
+.tm-flow .row .pris small{display:block;font-size:12px;color:var(--bronze)}
 .tm-flow .row--incl .pris b{font-size:13px;font-weight:600;color:var(--bronze)}
 @media (max-width:720px){
   .tm-flow .row{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"chk navn" "chk qty" "freq freq" "pris pris";gap:10px 14px}
@@ -170,16 +171,16 @@
   .tm-flow .row .pris{grid-area:pris;justify-self:start;text-align:left;min-width:0;display:flex;gap:8px;align-items:baseline}
   .tm-flow .row .pris small{margin-top:0}
   .tm-flow .fakta,.tm-flow .regnestrimmel{grid-template-columns:repeat(2,1fr)}
-  /* Touch-mål: steppere op på 44px (frekvens-rækken har sin egen fulde grid-række) */
-  .tm-flow .freq button{width:44px;height:44px}
+  /* Kundetype-kortene skal have ENS bredde, når de stakker */
+  .tm-flow .ktype-card{width:100%}
   /* Topbaren er ~450px høj på mobil — sticky ville kun efterlade ~180px scroll-vindue.
      Cta-baren i bunden viser prisen konstant, så sticky er overflødig her. */
   .tm-flow .topbar{position:static;top:auto}
 }
-.tm-flow .gaps{margin:26px 4px 0;font-size:13px;opacity:.7}
+.tm-flow .gaps{margin:26px 0 0;font-size:13px;opacity:.7}
 
 /* "Vi tilbyder også" — tilvalg som kompakte chips */
-.tm-flow .addons-intro{margin:30px 4px 14px;font-size:15px;color:var(--gul)}
+.tm-flow .addons-intro{margin:30px 0 14px;font-size:15px;color:var(--gul)}
 .tm-flow .addons{display:flex;flex-direction:column;gap:18px}
 .tm-flow .addon-cat{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gul);opacity:.85;margin-bottom:9px}
 .tm-flow .addon-list{display:flex;flex-wrap:wrap;gap:10px}
@@ -200,8 +201,9 @@
   .tm-flow .cta-inner .sum b{font-size:20px}
   .tm-flow .btn-cta{padding:14px 18px;white-space:nowrap}
 }
-.tm-flow .cta-inner .sum b{font-size:24px}
-.tm-flow .cta-inner .sum small{display:block;font-size:12px}
+.tm-flow .cta-inner .sum{min-width:0}
+.tm-flow .cta-inner .sum b{font-size:24px;white-space:nowrap}
+.tm-flow .cta-inner .sum small{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tm-flow .btn-cta{background:var(--brun);color:var(--gul);border:0;border-radius:12px;padding:15px 26px;font-size:17px;font-weight:700}
 
 /* STEP 5: KONTAKT + TAK */
@@ -210,7 +212,7 @@
 .tm-flow .kontakt p{margin-top:10px;opacity:.9}
 .tm-flow .kontakt label{display:block;margin:20px 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gul)}
 .tm-flow .kontakt input,.tm-flow .kontakt textarea{width:100%;padding:15px 16px;border-radius:12px;border:0;background:var(--ivory);color:var(--brun);font-size:16px}
-.tm-flow .kontakt .err{color:var(--gul);background:var(--roed);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:14px;display:none}
+.tm-flow .kontakt .err{color:var(--ivory);background:var(--roed-moerk);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:14px;display:none}   /* ivory på mørk rød ≈7.1:1 (AA) */
 .tm-flow .kontakt .err.show{display:block}
 /* Pris-recap over kontaktfelterne */
 .tm-flow .k-recap{margin-top:16px;background:#5a4322;border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.5}
