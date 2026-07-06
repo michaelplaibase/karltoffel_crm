@@ -267,11 +267,13 @@ function koerGravning(done){
 
 const STEP_ORDER = ["step-adresse","step-kundetype","step-verify","step-losning","step-kontakt"];
 
-function visStep(id){
+/* skipScroll: ved stille gendannelse (persistens) må siden ikke hoppe til
+   sektionen eller stjæle fokus — kunden er måske landet øverst på forsiden. */
+function visStep(id, skipScroll){
   ROOT.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
   $(id).classList.add("active");
   $("cta-bar").classList.toggle("on", id === "step-losning");
-  ROOT.scrollIntoView({ block:"start", behavior:"auto" });
+  if(!skipScroll) ROOT.scrollIntoView({ block:"start", behavior:"auto" });
   if(id === "step-verify") $("verify-adr").textContent = state.adresse;
   if(id === "step-losning") renderTop();
   if(id === "step-kontakt") renderRecap();
@@ -286,9 +288,28 @@ function visStep(id){
       for(let i=0;i<dots.length;i++) dots[i].classList.toggle("on", i <= idx);
     }
   }
-  const h = $(id).querySelector("h1,h2");   /* flyt fokus til trinnets overskrift (a11y) */
-  if(h){ h.setAttribute("tabindex","-1"); h.focus({ preventScroll:true }); }
+  if(!skipScroll){
+    const h = $(id).querySelector("h1,h2");   /* flyt fokus til trinnets overskrift (a11y) */
+    if(h){ h.setAttribute("tabindex","-1"); h.focus({ preventScroll:true }); }
+  }
+  gemState(id);
 }
+
+/* ============ PERSISTENS: flowet overlever refresh (mobil!) ============ */
+/* sessionStorage (ikke localStorage): dør med fanen, ingen cookie-samtykke-
+   problematik. 1 times udløb. Fejler stille i private-mode. */
+const PERSIST_KEY = "tm-state-v1";
+function gemState(stepId){
+  try {
+    if(!state.adresse) return;
+    const prod = {};
+    PRODUCTS.forEach(p => { prod[p.id] = { on: p.on, qty: p.qty, freq: p.freq, touched: !!p.touched }; });
+    sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
+      t: Date.now(), adresse: state.adresse, kundetype: state.kundetype, step: stepId, prod
+    }));
+  } catch(e){ /* private mode / kvote — persistens er best-effort */ }
+}
+function rydState(){ try { sessionStorage.removeItem(PERSIST_KEY); } catch(e){} }
 
 /* Pris-recap i commitment-øjeblikket: kunden skal kunne se pakken, mens de
    udfylder kontaktfelterne. */
@@ -420,6 +441,7 @@ $("btn-send").addEventListener("click", ()=>{
         "Valgt: " + linjer + "<br>" +
         "Estimeret: <b>" + kr(r.md) + "/md</b> ved " + r.visits + " besøg om året.";
     }
+    rydState();   /* leadet er sendt — intet at gendanne længere */
     visStep("step-tak");
   })
   .catch(()=>{
@@ -579,6 +601,31 @@ function opdater(){
   $("t-pris").textContent = kr(r.md);
   $("cta-pris").textContent = kr(r.md) + "/md";
   $("cta-detalje").textContent = r.count + " services · " + r.visits + " besøg om året · estimat";
+  gemState("step-losning");   /* hver mængde-/frekvens-/til-fravalgs-ændring overlever refresh */
 }
+
+/* ============ GENDAN (kør sidst — alle handlers er nu på plads) ============ */
+(function gendan(){
+  let s = null;
+  try { s = JSON.parse(sessionStorage.getItem(PERSIST_KEY) || "null"); } catch(e){ return; }
+  if(!s || !s.adresse || Date.now() - (s.t || 0) > 3600e3) return;
+  if(["step-kundetype","step-verify","step-losning","step-kontakt"].indexOf(s.step) === -1) return;
+
+  state.adresse = s.adresse;
+  adrInput.value = s.adresse;
+  if(s.kundetype === "privat" || s.kundetype === "erhverv") vaelgKundetype(s.kundetype);
+  if(s.prod) PRODUCTS.forEach(p => {
+    const d = s.prod[p.id];
+    if(d){ p.on = !!d.on; if(typeof d.qty === "number") p.qty = d.qty; if(typeof d.freq === "number") p.freq = d.freq; p.touched = !!d.touched; }
+  });
+  /* Skråfoto + auto-mål genstartes i baggrunden (stale-guard beskytter
+     brugerens gendannede mængder via touched-flaget). */
+  renderSkraafoto(VERIFY_DIRS[0]);
+  const req = ++measureReq;
+  if(window.KARLTOFFEL && window.KARLTOFFEL.measureProperty){
+    window.KARLTOFFEL.measureProperty(s.adresse).then(function(m){ if(req === measureReq) applyMeasurements(m); });
+  }
+  visStep(s.step, true);   /* stille: intet scroll-hop, ingen fokus-tyveri */
+})();
 
 })();
