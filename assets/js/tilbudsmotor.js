@@ -313,29 +313,62 @@ $("btn-kontakt").addEventListener("click", ()=>{ $("cta-bar").classList.remove("
 $("btn-tilbage").addEventListener("click", ()=> visStep("step-losning"));
 
 $("btn-send").addEventListener("click", ()=>{
-  const navn = $("k-navn").value.trim(), mail = $("k-mail").value.trim();
-  if(!navn || !mail || mail.indexOf("@") < 1){ $("k-err").classList.add("show"); return; }
+  const navn = $("k-navn").value.trim(), mail = $("k-mail").value.trim(), tlf = $("k-tlf").value.trim();
+  if(!navn || !mail || mail.indexOf("@") < 1){ sendFejl("Udfyld navn og e-mail, så vi kan få fat i dig."); return; }
   $("k-err").classList.remove("show");
+
   const r = beregn(PRODUCTS);
   const valgt = PRODUCTS.filter(p=>p.on);
-  const opsum = $("tak-opsum");
   const ktLabel = state.kundetype === "erhverv" ? " · Erhverv" : (state.kundetype === "privat" ? " · Privat" : "");
-  if(!valgt.length){
-    opsum.innerHTML = "<b>" + esc(state.adresse) + ktLabel + "</b><br>Du har ikke valgt nogen services endnu — vi ringer og sammensætter løsningen med dig.<br><br>Demo: intet er sendt endnu.";
-    visStep("step-tak"); return;
-  }
-  const linjer = valgt.map(p=>{
-    const suffix = (p.pris == null) ? (p.pakke ? " (indeholdt)" : " (pris ved besøg)")
-                 : (!p.qty ? " (angiv antal)" : " (" + p.freq + "x/år)");
-    return esc(p.navn) + suffix;
-  }).join(", ");
-  opsum.innerHTML =
-    "<b>" + esc(state.adresse) + ktLabel + "</b><br>" +
-    "Valgt: " + linjer + "<br>" +
-    "Estimeret: <b>" + kr(r.md) + "/md</b> ved " + r.visits + " besøg om året.<br><br>" +
-    "Demo: intet er sendt endnu. I produktion oprettes lead + tilbud i WorkMaker her.";
-  visStep("step-tak");
+
+  /* Lead-payload til CRM'et: kontaktinfo + valgte services (med WorkMaker-
+     nøgle under overgangen) + estimat + kundetype. Sendes via sitets relay
+     (/api/lead) — secret'en bor på serveren, aldrig i browseren. */
+  const payload = {
+    name: navn, email: mail, phone: tlf,
+    message: $("k-note").value.trim(),
+    address: state.adresse,
+    kundetype: state.kundetype,
+    source: "tilbudsmotor",
+    services: valgt.map(p=>({ id:p.id, navn:p.navn, wm:p.wm, qty:p.qty, enhed:p.enhed, freq:p.freq, pris:p.pris })),
+    estimat: { md: Math.round(r.md), aar: Math.round(r.aar), visits: r.visits, count: r.count }
+  };
+
+  const btnSend = $("btn-send");
+  btnSend.disabled = true;
+  const btnTekst = btnSend.textContent;
+  btnSend.textContent = "Sender...";
+
+  fetch("/api/lead", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(res => { if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+  .then(()=>{
+    const opsum = $("tak-opsum");
+    if(!valgt.length){
+      opsum.innerHTML = "<b>" + esc(state.adresse) + ktLabel + "</b><br>Du har ikke valgt nogen services endnu — vi ringer og sammensætter løsningen med dig.";
+    } else {
+      const linjer = valgt.map(p=>{
+        const suffix = (p.pris == null) ? (p.pakke ? " (indeholdt)" : " (pris ved besøg)")
+                     : (!p.qty ? " (angiv antal)" : " (" + p.freq + "x/år)");
+        return esc(p.navn) + suffix;
+      }).join(", ");
+      opsum.innerHTML =
+        "<b>" + esc(state.adresse) + ktLabel + "</b><br>" +
+        "Valgt: " + linjer + "<br>" +
+        "Estimeret: <b>" + kr(r.md) + "/md</b> ved " + r.visits + " besøg om året.";
+    }
+    visStep("step-tak");
+  })
+  .catch(()=>{
+    sendFejl("Vi kunne ikke sende din forespørgsel lige nu. Prøv igen om et øjeblik — eller ring til os.");
+  })
+  .finally(()=>{ btnSend.disabled = false; btnSend.textContent = btnTekst; });
 });
+
+function sendFejl(t){ const e = $("k-err"); e.textContent = t; e.classList.add("show"); }
 
 function esc(s){ const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
