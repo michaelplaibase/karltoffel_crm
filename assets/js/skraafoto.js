@@ -584,8 +584,9 @@
       .catch(function (err) {
         if (stale()) return false;
         card.classList.remove("sf-loading", "has-photo");
-        if (badge) badge.textContent = "Skråfoto demo";
-        if (note) note.textContent = "Kunne ikke hente skråfoto lige nu — viser demo. (" + (err && err.message || err) + ")";
+        /* Kundevendt fejl: ingen teknik-snak, ingen rå fejlbesked (den ryger i konsollen). */
+        if (badge) badge.textContent = "Luftfoto (illustration)";
+        if (note) note.textContent = "Vi kunne ikke hente luftfotoet lige nu — illustrationen her påvirker ikke din pris.";
         if (window.console) console.warn("[skraafoto]", err);
         return false;
       });

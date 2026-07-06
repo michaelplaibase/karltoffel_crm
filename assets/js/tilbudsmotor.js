@@ -235,6 +235,7 @@ function koerGravning(done){
   $("dig-adr").textContent = state.adresse;
   const reduceret = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if(reduceret){ done(); return; }
+  ROOT.classList.add("digging");   /* min-height-garanti: overlayet skal have plads på korte trin */
   dig.classList.add("on");
   let i = 0;
   msg.textContent = DIG_MSGS[0]; fill.style.width = "12%";
@@ -246,10 +247,25 @@ function koerGravning(done){
     } else {
       clearInterval(t);
       fill.style.width = "100%";
-      setTimeout(()=>{ dig.classList.remove("on"); done(); }, 350);
+      setTimeout(()=>{ dig.classList.remove("on"); ROOT.classList.remove("digging"); done(); }, 350);
     }
   }, 620);
 }
+
+/* Cta-baren er position:fixed, men en ancestor stacking context gør at den
+   maler BAG sidens senere sektioner. Skjul den, når tilbudsmotoren er
+   scrollet ud af viewporten. */
+(function(){
+  const bar = $("cta-bar");
+  if(bar && "IntersectionObserver" in window){
+    new IntersectionObserver(function(es){
+      /* Batches kan indeholde flere entries — den NYESTE afgør synligheden. */
+      bar.classList.toggle("off", !es[es.length - 1].isIntersecting);
+    }, { threshold: 0 }).observe(ROOT);
+  }
+})();
+
+const STEP_ORDER = ["step-adresse","step-kundetype","step-verify","step-losning","step-kontakt"];
 
 function visStep(id){
   ROOT.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
@@ -258,8 +274,30 @@ function visStep(id){
   ROOT.scrollIntoView({ block:"start", behavior:"auto" });
   if(id === "step-verify") $("verify-adr").textContent = state.adresse;
   if(id === "step-losning") renderTop();
+  if(id === "step-kontakt") renderRecap();
+  /* Fremdrift: "Trin N af 5" + dots (skjules på tak-trinnet). */
+  const prog = $("tm-progress");
+  if(prog){
+    const idx = STEP_ORDER.indexOf(id);
+    prog.classList.toggle("done", idx === -1);
+    if(idx > -1){
+      $("tm-progress-txt").textContent = "Trin " + (idx+1) + " af " + STEP_ORDER.length;
+      const dots = $("tm-progress-dots").children;
+      for(let i=0;i<dots.length;i++) dots[i].classList.toggle("on", i <= idx);
+    }
+  }
   const h = $(id).querySelector("h1,h2");   /* flyt fokus til trinnets overskrift (a11y) */
   if(h){ h.setAttribute("tabindex","-1"); h.focus({ preventScroll:true }); }
+}
+
+/* Pris-recap i commitment-øjeblikket: kunden skal kunne se pakken, mens de
+   udfylder kontaktfelterne. */
+function renderRecap(){
+  const el = $("k-recap"); if(!el) return;
+  const r = beregn(PRODUCTS);
+  el.innerHTML = r.count
+    ? "Din pakke: <b>" + kr(r.md) + "/md</b> · " + r.count + " services · " + r.visits + " besøg om året — vi bekræfter tallene, når vi ringer."
+    : "Ingen services valgt endnu — vi sammensætter løsningen med dig i telefonen.";
 }
 
 /* ============ KUNDETYPE (privat/erhverv) ============ */
@@ -274,13 +312,24 @@ function vaelgKundetype(t){
   ktNote.classList.toggle("show", t === "erhverv");
   ktVidere.disabled = false;
 }
-ktPrivat.addEventListener("click", ()=> vaelgKundetype("privat"));
-ktErhverv.addEventListener("click", ()=> vaelgKundetype("erhverv"));
-ktVidere.addEventListener("click", ()=>{
-  if(!state.kundetype) return;
-  koerGravning(()=> visStep("step-verify"));
-});
-$("kt-tilbage").addEventListener("click", ()=> visStep("step-adresse"));
+/* Kortklik vælger OG fortsætter (ét klik i stedet for to). Kort pause så
+   valget når at blive synligt; "Videre" står tilbage som tastatur-fallback.
+   Race-guards: "Tilbage" i pause-vinduet annullerer timeren, og ktFortsaet
+   kører kun mens kundetype-trinnet faktisk er aktivt (dækker også
+   prefers-reduced-motion, hvor graveanimationen springes over). */
+let ktGaar = false, ktTimer = null;
+function ktFortsaet(){
+  if(ktGaar) return;
+  const aktiv = ROOT.querySelector(".step.active");
+  if(!aktiv || aktiv.id !== "step-kundetype") return;
+  ktGaar = true;
+  koerGravning(()=>{ ktGaar = false; visStep("step-verify"); });
+}
+function ktKlik(t){ vaelgKundetype(t); if(!ktGaar){ clearTimeout(ktTimer); ktTimer = setTimeout(ktFortsaet, 180); } }
+ktPrivat.addEventListener("click", ()=> ktKlik("privat"));
+ktErhverv.addEventListener("click", ()=> ktKlik("erhverv"));
+ktVidere.addEventListener("click", ()=>{ if(state.kundetype) ktFortsaet(); });
+$("kt-tilbage").addEventListener("click", ()=>{ clearTimeout(ktTimer); visStep("step-adresse"); });
 
 /* ============ VIDERE/TILBAGE-NAVIGATION ============ */
 /* Step 1: "Videre" kræver en adresse. Er der tekst i feltet, men intet valg
@@ -314,7 +363,10 @@ $("btn-tilbage").addEventListener("click", ()=> visStep("step-losning"));
 
 $("btn-send").addEventListener("click", ()=>{
   const navn = $("k-navn").value.trim(), mail = $("k-mail").value.trim(), tlf = $("k-tlf").value.trim();
-  if(!navn || !mail || mail.indexOf("@") < 1){ sendFejl("Udfyld navn og e-mail, så vi kan få fat i dig."); return; }
+  /* Telefon er obligatorisk — hele løftet er et opkald. E-mail er valgfri,
+     men skal ligne en e-mail, hvis den er udfyldt. */
+  if(!navn || tlf.replace(/\D/g,"").length < 8){ sendFejl("Udfyld navn og telefonnummer, så vi kan ringe dig op."); return; }
+  if(mail && mail.indexOf("@") < 1){ sendFejl("Tjek lige e-mailen — den ser ikke rigtig ud."); return; }
   $("k-err").classList.remove("show");
 
   const r = beregn(PRODUCTS);
@@ -326,7 +378,7 @@ $("btn-send").addEventListener("click", ()=>{
      (/api/lead) — secret'en bor på serveren, aldrig i browseren. */
   const payload = {
     name: navn, email: mail, phone: tlf,
-    message: $("k-note").value.trim(),
+    message: $("k-note").value.trim().slice(0, 2000),   /* server-cap er 2000 — klip lokalt så relayets 9 KB-grænse aldrig rammes */
     address: state.adresse,
     kundetype: state.kundetype,
     source: "tilbudsmotor",
@@ -344,8 +396,16 @@ $("btn-send").addEventListener("click", ()=>{
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload)
   })
-  .then(res => { if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
-  .then(()=>{
+  .then(res => { if(!res.ok) throw new Error("HTTP " + res.status); return res.json().catch(()=>({})); })   /* 2xx med u-parsbar body: leadet ER oprettet — vis tak-siden */
+  .then((data)=>{
+    /* CRM'et returnerer call:"booked 2026-07-06T15:15:00" når opkalds-slottet
+       er lagt i kalenderen — vis det konkrete tidspunkt til kunden. */
+    const ring = $("tak-ring");
+    if(ring){
+      const t = ringTekst(data && data.call);
+      ring.textContent = t;
+      ring.classList.toggle("show", !!t);
+    }
     const opsum = $("tak-opsum");
     if(!valgt.length){
       opsum.innerHTML = "<b>" + esc(state.adresse) + ktLabel + "</b><br>Du har ikke valgt nogen services endnu — vi ringer og sammensætter løsningen med dig.";
@@ -369,6 +429,19 @@ $("btn-send").addEventListener("click", ()=>{
 });
 
 function sendFejl(t){ const e = $("k-err"); e.textContent = t; e.classList.add("show"); }
+
+/* "booked 2026-07-06T15:15:00" → "Vi ringer til dig i dag ca. kl. 15:15."
+   Slottet er dansk vægur-tid; kunderne sidder i praksis i samme tidszone. */
+function ringTekst(call){
+  const m = /^booked (\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(call || "");
+  if(!m) return "";
+  const y = +m[1], mo = +m[2], d = +m[3], klok = m[4] + ":" + m[5];
+  const nu = new Date(), imorgen = new Date(nu.getFullYear(), nu.getMonth(), nu.getDate() + 1);
+  const erDag = (dt)=> dt.getFullYear() === y && dt.getMonth() + 1 === mo && dt.getDate() === d;
+  const DAGE = ["søndag","mandag","tirsdag","onsdag","torsdag","fredag","lørdag"];
+  const dag = erDag(nu) ? "i dag" : erDag(imorgen) ? "i morgen" : "på " + DAGE[new Date(y, mo - 1, d).getDay()];
+  return "Vi ringer til dig " + dag + " ca. kl. " + klok + ".";
+}
 
 function esc(s){ const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
