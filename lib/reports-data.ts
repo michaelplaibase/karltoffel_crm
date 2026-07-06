@@ -68,8 +68,9 @@ function kpisForOrders(orders: OrderRow[]): { customers: Kpi[]; revenue: Kpi[]; 
   return { customers, revenue, aboRevenue: revByType.abo, aboCustomers: custByType.abo.size, activeMonths: monthsSeen.size || 1 };
 }
 
-/** Report data for the trailing 12 months ending at the month of `refISO`. */
-export async function getReportData(refISO = "2026-07-15"): Promise<ReportData> {
+/** Report data for the trailing 12 months ending at the month of `refISO`
+ *  (defaults to today, so the window keeps moving forward). */
+export async function getReportData(refISO = new Date().toISOString().slice(0, 10)): Promise<ReportData> {
   const ref = new Date(`${refISO}T00:00:00Z`);
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() - (11 - i), 1));

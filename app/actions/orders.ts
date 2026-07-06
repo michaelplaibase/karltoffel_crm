@@ -3,6 +3,7 @@
 // Server actions for orders: create a manual order, and the "Afslut ordre"
 // (complete order) flow.
 import { prisma } from "@/lib/db";
+import { guardAction } from "@/lib/api-auth";
 import { categoryColor } from "@/lib/categories";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -21,6 +22,7 @@ function readTaskLines(formData: FormData) {
 }
 
 export async function createOrder(_prev: OrderCreateState, formData: FormData): Promise<OrderCreateState> {
+  await guardAction();
   const contactId = Number(formData.get("contactId"));
   if (!contactId) return { error: "Vælg en kunde." };
   const lines = readTaskLines(formData);
@@ -69,6 +71,7 @@ const STATUS: Record<string, string> = {
 /** Delete an order and its task lines. `redirectTo=null` stays on the current
  *  page (used by the calendar), otherwise navigates there (lists default to /orders). */
 export async function deleteOrder(orderId: number, redirectTo: string | null = "/orders"): Promise<void> {
+  await guardAction();
   await prisma.$transaction([
     prisma.taskLine.deleteMany({ where: { orderId } }),
     prisma.order.delete({ where: { id: orderId } }),
@@ -89,6 +92,7 @@ function revalidateSchedule(orderId?: number) {
 /** Calendar context-menu "Lås helt op" (locked=false) / "Lås op, fastgør til
  *  ugedag" (locked=true — the planner pins it to its weekday). */
 export async function setOrderLock(orderId: number, locked: boolean): Promise<void> {
+  await guardAction();
   await prisma.order.update({ where: { id: orderId }, data: { lockedFully: locked } });
   revalidateSchedule();
 }
@@ -96,6 +100,7 @@ export async function setOrderLock(orderId: number, locked: boolean): Promise<vo
 /** Calendar "Flyt til anden uge …" — shift the order ±N weeks. When `unlock`,
  *  also fully release it so the planner may re-slot it in the target week. */
 export async function moveOrderWeeks(orderId: number, weeks: number, unlock = false): Promise<void> {
+  await guardAction();
   const o = await prisma.order.findUnique({ where: { id: orderId }, select: { plannedAt: true } });
   if (!o) return;
   const plannedAt = new Date(o.plannedAt.getTime() + weeks * 7 * 864e5);
@@ -109,12 +114,14 @@ export async function moveOrderWeeks(orderId: number, weeks: number, unlock = fa
 /** Sidebar "Genplanlæg uge" — re-run the (deterministic, on-read) week planner
  *  and refresh the calendar for the shown week. */
 export async function replanWeek(weekMonday: string): Promise<void> {
+  await guardAction();
   revalidatePath("/calendar");
   revalidatePath("/daycalendar");
   redirect(`/calendar?week=${weekMonday}`);
 }
 
 export async function completeOrder(orderId: number, _prev: CompleteOrderState, formData: FormData): Promise<CompleteOrderState> {
+  await guardAction();
   const leveringsstatus = String(formData.get("leveringsstatus") ?? "");
   if (!leveringsstatus || !(leveringsstatus in STATUS)) return { error: "Vælg en leveringsstatus." };
 

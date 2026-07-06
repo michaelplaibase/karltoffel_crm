@@ -3,11 +3,13 @@
 // Server actions for the settings pages + message templates. They persist into
 // the JSON store on Company.settings (see lib/settings-store).
 import { setSettingsValues, setTemplateValues } from "@/lib/settings-store";
+import { guardAction } from "@/lib/api-auth";
 import { revalidatePath } from "next/cache";
 
 export type SaveState = { saved?: boolean };
 
 export async function saveSettings(route: string, _prev: SaveState, formData: FormData): Promise<SaveState> {
+  await guardAction();
   const values: Record<string, string[]> = {};
   for (const key of new Set(formData.keys())) {
     // Only our positional field keys (sNfM) — skip React's $ACTION_* form fields.
@@ -20,6 +22,7 @@ export async function saveSettings(route: string, _prev: SaveState, formData: Fo
 }
 
 export async function saveTemplate(key: string, _prev: SaveState, formData: FormData): Promise<SaveState> {
+  await guardAction();
   await setTemplateValues(key, {
     subjects: formData.getAll("subject").map(String),
     body: String(formData.get("body") ?? ""),

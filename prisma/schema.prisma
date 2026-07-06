@@ -24,6 +24,7 @@ model Company {
   users         User[]
   contacts      Contact[]
   standardTasks StandardTask[]
+  leads         Lead[]
   settings      String?   // JSON blob (SQLite has no native Json)
   createdAt     DateTime  @default(now())
 }
@@ -77,6 +78,7 @@ model Contact {
   subscriptions Subscription[]
   fixedPrices   FixedPriceAgreement[]
   orders        Order[]
+  leads         Lead[]
   createdAt     DateTime  @default(now())
 
   @@index([companyId])
@@ -191,4 +193,30 @@ model HolidayWeek {
   id         Int      @id @default(autoincrement())
   startWeek  DateTime // Monday ISO date
   endWeek    DateTime
+}
+
+// Inbound sales lead from the public website form / webhook (POST /api/leads).
+// Separate from Contact: a lead has few required fields and its own lifecycle
+// (new → contacted → converted → rejected); converting creates a real Contact.
+model Lead {
+  id        Int      @id @default(autoincrement())
+  company   Company  @relation(fields: [companyId], references: [id])
+  companyId Int
+  status    String   @default("new")     // new | contacted | converted | rejected
+  name      String
+  email     String?                       // stored lowercased/trimmed
+  phone     String?                       // stored normalised (digits, +45 stripped)
+  address   String?                       // free text as submitted
+  message   String?
+  source    String   @default("website")  // website | manual | partner | ...
+  utm       String?                       // JSON blob string (schema has no Json type)
+  ip        String?                       // submitter IP for abuse forensics
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  contactId Int?                          // set when converted to a customer
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, status])
+  @@index([email])
+  @@index([phone])
 }

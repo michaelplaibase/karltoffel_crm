@@ -33,6 +33,7 @@ export const TOP_NAV: NavMenu[] = [
   {
     label: "Kartotek", en: "Register",
     items: [
+      { label: "Emner", en: "Leads", href: "/leads" },
       { label: "Kunder", en: "Customers", href: "/customers" },
       { label: "Abonnementer", en: "Subscriptions", href: "/subscriptions" },
       { label: "Fastprisaftaler", en: "Fixed-price agreements", href: "/fixed-prices" },
@@ -50,6 +51,7 @@ export const TOP_NAV: NavMenu[] = [
   {
     label: "Hjælp", en: "Help",
     items: [
+      { label: "Vejledninger", en: "Guides", href: "/guides" },
       { label: "Samarbejdspartnere", en: "Partners", href: "/partners" },
       { label: "Fenster quiz", en: "Quiz", href: "/quiz" },
       { label: "Kontakt support", en: "Support", href: "/support" },

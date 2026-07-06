@@ -12,6 +12,7 @@
   --body-text: #5A6169; --heading: #212529; --muted: #868E96; --input-text: #495057;
   --table-header: #9BA4AE; --card-border: #E9ECEF; --input-border: #BECAD6;
   --table-border: #DEE2E6; --row-striped: #F7F8FB; --row-hover: #F0F0F0;
+  --faint: #C4CCD4;
 
   --font-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-head: var(--font-poppins), var(--font-base);
@@ -31,17 +32,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 h1,h2,h3,h4,h5,h6 { font-family: var(--font-head); font-weight: 400; color: var(--heading); margin: 0 0 12px; line-height: 1.15; }
-h1 { font-size: 48.832px; } h2 { font-size: 39.056px; } h3 { font-size: 31.248px; }
+h1 { font-size: clamp(29px, 2.4vw + 18px, 48.832px); } h2 { font-size: clamp(26px, 2vw + 16px, 39.056px); } h3 { font-size: clamp(23px, 1.5vw + 15px, 31.248px); }
 h4 { font-size: 25.008px; } h5 { font-size: 20px; } h6 { font-size: 16px; }
 a { color: var(--primary); text-decoration: none; }
 a:hover { color: var(--link-hover); text-decoration: underline; }
 hr { border: 0; border-top: 1px solid rgba(0,0,0,.1); margin: 18px 0; }
-:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* On the blue navbar / filled controls the blue ring is invisible — use white. */
+.navbar :focus-visible, .calbtn.on:focus-visible, .seg > span.on:focus-visible { outline-color: #fff; }
 
 /* ---------- layout ---------- */
 .app-main { padding-top: var(--navbar-h); min-height: 100vh; }
 .container-1140 { max-width: var(--container); margin: 0 auto; padding: 24px; }
-.page-title { font-size: 48.832px; margin: 0 0 12px; }
+.page-title { font-size: clamp(29px, 2.4vw + 18px, 48.832px); margin: 0 0 12px; }
 .page-desc { color: var(--muted); font-size: 15px; margin: 0 0 20px; }
 .section-title { font-size: 25.008px; margin: 0 0 12px; }
 .section-hr { border: 0; border-top: 1px solid rgba(0,0,0,.1); margin: 40px 0; }
@@ -63,9 +66,9 @@ hr { border: 0; border-top: 1px solid rgba(0,0,0,.1); margin: 18px 0; }
 .nav-menus { display: flex; align-items: center; gap: 0; flex: 1; }
 .nav-item { position: relative; }
 .nav-link { display: inline-flex; align-items: center; gap: 5px; padding: 10px; font-size: 16px;
-  font-weight: 300; color: rgba(255,255,255,.5); background: none; border: 0; cursor: pointer;
+  font-weight: 300; color: rgba(255,255,255,.72); background: none; border: 0; cursor: pointer;
   font-family: var(--font-base); white-space: nowrap; }
-.nav-link:hover { color: rgba(255,255,255,.75); text-decoration: none; }
+.nav-link:hover { color: rgba(255,255,255,.92); text-decoration: none; }
 .nav-link.active { color: #fff; }
 .nav-link .bi { font-size: 12px; opacity: .8; }
 .navbar-right { display: flex; align-items: center; }
@@ -95,17 +98,25 @@ hr { border: 0; border-top: 1px solid rgba(0,0,0,.1); margin: 18px 0; }
 /* ---------- buttons ---------- */
 .btn { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-head);
   font-size: 14px; font-weight: 300; line-height: 1.125; padding: 12px 20px; border: 1px solid transparent;
-  border-radius: var(--radius); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .15s, box-shadow .15s; }
+  border-radius: var(--radius); cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background .15s, box-shadow .15s, color .15s, border-color .15s, transform .05s; }
 .btn:hover { text-decoration: none; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled, .calbtn:disabled, .genbtn:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
 .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; box-shadow: 0 5px 15px rgba(0,0,0,.05), 0 4px 10px rgba(0,123,255,.25); }
 .btn-secondary { background: var(--secondary); border-color: var(--secondary); color: #fff; }
 .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn-light { background: var(--light); border-color: var(--light); color: var(--dark); }
+.btn-secondary:hover { background: #4E545B; border-color: #4E545B; color: #fff; }
+.btn-success:hover { background: #17A65D; border-color: #17A65D; color: #fff; }
+.btn-danger:hover { background: #AC1434; border-color: #AC1434; color: #fff; }
+.btn-light:hover { background: #DDE1E5; border-color: #DDE1E5; }
 .btn-outline-primary { background: transparent; border-color: var(--primary); color: var(--primary); }
 .btn-outline-primary:hover { background: var(--primary); color: #fff; }
 .btn-outline-secondary { background: transparent; border-color: var(--secondary); color: var(--secondary); }
+.btn-outline-secondary:hover { background: var(--secondary); color: #fff; }
 .btn-link { background: transparent; border-color: transparent; color: var(--primary); padding: 12px 8px; }
 .btn-sm { padding: 5.6px 16px; font-size: 12px; border-radius: var(--radius-sm); }
 .btn-block { width: 100%; justify-content: center; }
@@ -134,13 +145,15 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 /* ---------- tables ---------- */
 .table-wrap { overflow-x: auto; }
 table.data-table { width: 100%; border-collapse: collapse; }
-table.data-table th { font-size: 11px; font-weight: 300; color: var(--table-header); text-transform: uppercase;
+table.data-table th { font-size: 11px; font-weight: 500; letter-spacing: .04em; color: var(--table-header); text-transform: uppercase;
   text-align: left; padding: 12px; border-bottom: 2px solid var(--table-border); white-space: nowrap; }
 table.data-table td { font-size: 12.8px; color: var(--body-text); padding: 12px; border-top: 1px solid var(--table-border); vertical-align: top; }
+table.data-table tbody tr { transition: background-color .1s; }
 table.data-table tbody tr:nth-child(odd) { background: var(--row-striped); }
-table.data-table tbody tr:hover { background-image: linear-gradient(rgba(0,0,0,.075), rgba(0,0,0,.075)); }
+table.data-table tbody tr:hover { background-color: var(--row-hover); }
 .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.table-empty { padding: 28px; text-align: center; color: var(--muted); font-style: italic; }
+.table-empty { padding: 44px 24px; text-align: center; color: var(--muted); font-size: 14px; }
+.table-empty::before { font-family: "bootstrap-icons"; content: "\f48a"; display: block; font-size: 28px; color: var(--faint); margin-bottom: 10px; }
 .cust b { font-weight: 500; color: var(--heading); }
 .cust .l { display: block; }
 .cust .muted { color: var(--muted); font-size: 12px; }
@@ -159,6 +172,7 @@ table.data-table tbody tr:hover { background-image: linear-gradient(rgba(0,0,0,.
 .badge-warning { background: var(--warning); color: var(--dark); } .badge-info { background: var(--info); }
 .badge-soft-warning { background: #FFF3DC; color: #8a5a10; } .badge-soft-success { background: #D7FAE9; color: #0f7a4c; }
 .badge-soft-muted { background: #eef1f5; color: var(--secondary); }
+.badge-soft-danger { background: #FAD7DE; color: #8F1030; }
 
 /* category letter chip */
 .catchip { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 4px;
@@ -167,7 +181,7 @@ table.data-table tbody tr:hover { background-image: linear-gradient(rgba(0,0,0,.
 /* task lines */
 .tasklines { border: 1px solid var(--table-border); border-radius: 6px; overflow: hidden; }
 .tl-head, .tl-row { display: grid; grid-template-columns: 1fr 110px 90px 40px; gap: 12px; align-items: center; padding: 11px 14px; }
-.tl-head { background: #F7F8FB; border-bottom: 1px solid var(--table-border); font-size: 10.5px; text-transform: uppercase; color: var(--table-header); }
+.tl-head { background: #F7F8FB; border-bottom: 1px solid var(--table-border); font-size: 10.5px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--table-header); }
 .tl-row { border-bottom: 1px solid #eef1f5; }
 .tl-row:last-child { border-bottom: 0; }
 .tl-desc { display: flex; align-items: center; gap: 9px; }
@@ -252,7 +266,7 @@ select.form-control-sm { background-position: right 10px center; padding-right: 
 .cal-ev.st-mislykket { border-color: #C4183C; }
 .cal-ev.st-ikke_afsluttet { border-color: #FFB400; }
 
-.legend2 .grp { font-size: 11px; text-transform: uppercase; color: var(--table-header); margin: 12px 0 6px; }
+.legend2 .grp { font-size: 11px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--table-header); margin: 12px 0 6px; }
 .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--body-text); margin: 4px 0; }
 .legend-sw { width: 24px; height: 13px; border-radius: 3px; border-left: 3px solid; flex: 0 0 auto; }
 
@@ -307,3 +321,227 @@ select.form-control-sm { background-position: right 10px center; padding-right: 
 .series-legend .dot2 { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: var(--muted); margin-top: 10px; }
 .map-box { height: 260px; border: 1px dashed var(--table-border); border-radius: 8px; margin-top: 12px; display: grid; place-items: center; color: var(--faint); background: #f7fafc; }
+
+/* ---------- loading skeletons ---------- */
+.skeleton { background: linear-gradient(90deg, #eef1f5 25%, #f7f8fb 37%, #eef1f5 63%); background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite; border-radius: 6px; }
+@keyframes shimmer { to { background-position: -100% 0; } }
+.sk-line { height: 14px; margin: 12px 0; }
+.sk-title { height: 34px; width: 40%; margin-bottom: 20px; }
+.sk-row { height: 44px; margin: 10px 0; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* ---------- vejledninger (guides) ---------- */
+.guide-toc { margin: 0; padding-left: 20px; display: grid; gap: 7px; }
+.guide-toc a { font-size: 14.5px; }
+.guide-section { scroll-margin-top: 84px; }
+.guide-intro { color: var(--body-text); font-size: 15px; margin: 2px 0 18px; line-height: 1.55; }
+.guide-step { border-top: 1px solid #eef1f5; padding: 16px 0 4px; }
+.guide-step:first-of-type { border-top: 0; padding-top: 2px; }
+.guide-step-title { display: flex; align-items: center; gap: 10px; font-size: 18px; margin: 0 0 8px; }
+.guide-step-n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; flex: none; }
+.guide-p { margin: 0 0 10px; line-height: 1.55; }
+.guide-list { margin: 4px 0 12px; padding-left: 22px; display: grid; gap: 5px; line-height: 1.5; }
+.guide-code { font-family: ui-monospace, "SFMono-Regular", monospace; font-size: 12.5px;
+  background: #F7F8FB; border: 1px solid #eef1f5; border-radius: 4px; padding: 1px 5px; }
+.guide-pre { background: #1B1F24; color: #E6EBF0; border-radius: 8px; padding: 14px 16px; overflow-x: auto;
+  font-size: 12.5px; margin: 8px 0 14px; }
+.guide-pre code { font-family: ui-monospace, "SFMono-Regular", monospace; }
+.guide-tips { background: #F7F8FB; border: 1px solid #eef1f5; border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0; padding: 12px 16px; margin-top: 18px; }
+.guide-tips-title { font-size: 14px; margin: 0 0 6px; }
+
+/* ============================ Team calendar (Medarbejder-tavle) ============================
+   Colleague swimlane board + month views, ported from the approved mockup
+   (medarbejder-kalender-mockup.html). Everything is scoped under a .teamcal ancestor so
+   nothing leaks into other pages (which keep using .calbtn / .calseg / .badge / .daycal-*).
+   Light theme only — the mockup's local tokens are mapped onto the existing design-system
+   variables above via --tc-* locals (no dark-mode block on purpose).
+   Colour model:
+     - WHO   : per-employee colour arrives as an inline `--emp` custom property on the
+               element (from User.calendarColor). Cards/chips mix it 14% into white;
+               avatars, dots and bars use it solid.
+     - STATUS: .s-ok / .s-wait / .s-warn / .s-fail set `--st`, which drives the card's
+               left border (ok=success, wait=primary, warn=warning, fail=danger).
+     - TYPE  : the small letter chip (.cat) gets `--cat` inline from categoryColor(). */
+.teamcal {
+  /* token map: mockup name -> app variable */
+  --tc-ground: #fff;
+  --tc-panel-2: #fbfcfd;              /* header strips (same literal as .cal-corner) */
+  --tc-sink: #eef1f5;
+  --tc-line: var(--table-border);     /* #DEE2E6 */
+  --tc-line-soft: var(--card-border); /* #E9ECEF */
+  --tc-ink: var(--heading);
+  --tc-body: var(--body-text);
+  --tc-muted: var(--muted);
+  --tc-faint: var(--faint);
+  --tc-accent: var(--primary);
+  --tc-accent-ink: #fff;
+  --tc-ok: var(--success);
+  --tc-wait: var(--primary);
+  --tc-warn: var(--warning);
+  --tc-fail: var(--danger);
+  --tc-weekend: #f8fafb;
+  --tc-today: #eef6fc;
+  color: var(--tc-body);
+  font-size: 15px;
+}
+
+/* page frame: constrain width + breathe (the app shell only offsets the navbar) */
+.teamcal .stage { max-width: 1240px; margin: 0 auto; padding: 24px 22px 56px; }
+@media (max-width: 720px) { .teamcal .stage { padding: 16px 12px 40px; } }
+
+/* card shell around a board/month view */
+.teamcal .app { background: var(--tc-ground); border: 1px solid var(--tc-line-soft); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); overflow: hidden; }
+
+/* ---------- toolbar / panel header ---------- */
+.teamcal .panel-hd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 13px 16px;
+  border-bottom: 1px solid var(--tc-line); }
+.teamcal .panel-hd .title { font-family: var(--font-head); font-size: 19px; color: var(--tc-ink);
+  margin: 0 4px 0 2px; font-weight: 500; }
+.teamcal .sp { flex: 1; }
+
+/* pill badge (overrides the global .badge inside .teamcal — higher specificity) */
+.teamcal .badge { display: inline-flex; align-items: center; font-family: var(--font-base); font-size: 11px;
+  letter-spacing: .08em; font-weight: 600; text-transform: uppercase; color: var(--tc-muted);
+  background: var(--tc-sink); border-radius: 20px; padding: 3px 9px; }
+.teamcal .badge.acc { color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, #fff); }
+
+/* buttons + segmented switches (same look as .calbtn / .calseg) */
+.teamcal .cbtn { border: 1px solid var(--tc-line-soft); background: var(--tc-sink); color: var(--tc-ink);
+  font: inherit; font-size: 12.5px; padding: 6px 11px; border-radius: 6px; cursor: pointer; line-height: 1; }
+.teamcal .cbtn:hover { border-color: var(--tc-faint); }
+.teamcal .cbtn.on { background: var(--tc-accent); border-color: var(--tc-accent); color: var(--tc-accent-ink); }
+.teamcal .cbtn.on:focus-visible { outline-color: #fff; } /* blue ring invisible on filled control */
+.teamcal .seg { display: inline-flex; border: 0; border-radius: 0; overflow: visible; /* reset global .seg */
+  font-family: inherit; font-size: inherit; }
+.teamcal .seg .cbtn { border-radius: 0; margin-left: -1px; }
+.teamcal .seg .cbtn:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.teamcal .seg .cbtn:last-child { border-radius: 0 6px 6px 0; }
+.teamcal .seg.tabs .cbtn { font-size: 13px; padding: 7px 14px; font-weight: 500; }
+.teamcal .navlead { display: flex; align-items: center; gap: 2px; }
+.teamcal .navlead .cbtn { padding: 6px 9px; }
+
+/* ---------- week board: employees x weekdays ---------- */
+.teamcal .board-scroll { overflow-x: auto; }
+.teamcal .board { display: grid; grid-template-columns: 196px repeat(7, minmax(122px, 1fr)); min-width: 900px; }
+.teamcal .cell { border-right: 1px solid var(--tc-line-soft); border-bottom: 1px solid var(--tc-line-soft);
+  min-height: 86px; padding: 6px 6px 8px; }
+.teamcal .cell.wknd { background: var(--tc-weekend); }
+.teamcal .cell.today { background: var(--tc-today); }
+.teamcal .corner { position: sticky; left: 0; z-index: 6; background: var(--tc-panel-2);
+  border-bottom: 1px solid var(--tc-line); border-right: 1px solid var(--tc-line);
+  display: flex; align-items: flex-end; padding: 8px 12px; font-size: 12px; color: var(--tc-muted); }
+.teamcal .dhead { border-bottom: 1px solid var(--tc-line); border-right: 1px solid var(--tc-line-soft);
+  padding: 8px 10px; background: var(--tc-panel-2); text-align: left; }
+.teamcal .dhead b { display: block; color: var(--tc-accent); font-size: 14px; font-weight: 600; }
+.teamcal .dhead .kr { font-size: 11px; color: var(--tc-muted); font-variant-numeric: tabular-nums; }
+.teamcal .dhead.wknd b { color: var(--tc-muted); }
+.teamcal .dhead.today { background: var(--tc-today); box-shadow: inset 0 2px 0 var(--tc-accent); }
+
+/* sticky employee label column */
+.teamcal .lbl { position: sticky; left: 0; z-index: 5; background: var(--tc-ground);
+  border-right: 1px solid var(--tc-line); border-bottom: 1px solid var(--tc-line-soft);
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.teamcal .ava { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  color: #fff; font-size: 12px; font-weight: 600; background: var(--emp); letter-spacing: .02em; }
+.teamcal .lbl .who { min-width: 0; }
+.teamcal .lbl .who b { display: block; color: var(--tc-ink); font-size: 13.5px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teamcal .lbl .who span { font-size: 11.5px; color: var(--tc-muted); font-variant-numeric: tabular-nums; }
+.teamcal .lbl .me { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--tc-accent);
+  border: 1px solid color-mix(in srgb, var(--tc-accent) 34%, #fff); border-radius: 4px; padding: 1px 4px; margin-left: 6px; }
+
+/* ---------- job cards ---------- */
+.teamcal .stack { display: flex; flex-direction: column; gap: 5px; }
+.teamcal .ev { position: relative; background: color-mix(in srgb, var(--emp) 14%, #fff);
+  border: 1px solid var(--tc-line-soft); border-left: 3px solid var(--st, var(--tc-wait)); border-radius: 4px;
+  padding: 4px 6px 5px; cursor: default; }
+.teamcal .ev .t { display: block; font-size: 10.5px; color: var(--tc-muted); font-variant-numeric: tabular-nums; }
+.teamcal .ev .h { display: block; color: var(--tc-ink); font-size: 12px; font-weight: 600; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teamcal .ev .s { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--tc-body); margin-top: 1px; }
+.teamcal .cat { flex: none; width: 14px; height: 14px; border-radius: 3px; background: var(--cat); color: #fff;
+  font-size: 9px; font-weight: 700; display: grid; place-items: center; line-height: 1; font-style: normal; }
+.teamcal .ev .s .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teamcal .idle { color: var(--tc-faint); font-size: 11.5px; font-style: italic; padding-top: 4px; }
+
+/* status -> left-border colour */
+.teamcal .s-ok   { --st: var(--tc-ok); }
+.teamcal .s-wait { --st: var(--tc-wait); }
+.teamcal .s-warn { --st: var(--tc-warn); }
+.teamcal .s-fail { --st: var(--tc-fail); }
+
+/* ---------- unplanned lane ---------- */
+.teamcal .lane { display: grid; grid-template-columns: 196px 1fr; border-top: 2px solid var(--tc-line); }
+.teamcal .lane .lbl { border-bottom: none; }
+.teamcal .lane .lbl .who b { color: var(--tc-fail); }
+.teamcal .lane .bin { border-bottom: none; padding: 9px 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.teamcal .lane .hint { font-size: 11.5px; color: var(--tc-muted); margin-left: 2px; }
+
+/* ---------- legend strip ---------- */
+.teamcal .legend { display: flex; flex-wrap: wrap; gap: 6px 20px; padding: 11px 16px;
+  border-top: 1px solid var(--tc-line); background: var(--tc-panel-2); }
+.teamcal .legend .grp { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.teamcal .legend .k { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--tc-muted);
+  font-weight: 600; margin-right: 2px; }
+.teamcal .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tc-body); }
+.teamcal .lg .sw { width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--tc-line);
+  border-left: 3px solid var(--c); }
+.teamcal .lg .dot { width: 12px; height: 12px; border-radius: 3px; background: var(--c, var(--emp)); }
+
+/* ---------- month view chrome ---------- */
+.teamcal .split { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 14px; }
+@media (max-width: 900px) { .teamcal .split { grid-template-columns: 1fr; } }
+.teamcal .vlabel { display: flex; align-items: center; gap: 9px; margin: 0 2px 9px; }
+.teamcal .vlabel .pill { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--tc-accent-ink);
+  background: var(--tc-accent); border-radius: 5px; padding: 3px 8px; }
+.teamcal .vlabel h3 { font-size: 15px; margin: 0; }
+.teamcal .vlabel .rec { font-size: 11px; color: var(--tc-ok); font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--tc-ok) 40%, #fff); border-radius: 20px; padding: 2px 8px; }
+
+/* month variant A: classic date grid (week-number rail + 7 day columns) */
+.teamcal .mgrid { display: grid; grid-template-columns: 34px repeat(7, 1fr); }
+.teamcal .mgrid .mh { background: var(--tc-panel-2); border-bottom: 1px solid var(--tc-line);
+  border-right: 1px solid var(--tc-line-soft); font-size: 11px; color: var(--tc-muted); padding: 6px;
+  text-align: center; font-weight: 600; }
+.teamcal .mgrid .wk { background: var(--tc-panel-2); border-right: 1px solid var(--tc-line);
+  border-bottom: 1px solid var(--tc-line-soft); font-size: 10.5px; color: var(--tc-muted);
+  display: grid; place-items: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.teamcal .mgrid .md { border-right: 1px solid var(--tc-line-soft); border-bottom: 1px solid var(--tc-line-soft);
+  min-height: 70px; padding: 4px 5px; display: flex; flex-direction: column; gap: 3px; }
+.teamcal .mgrid .md .dn { font-size: 11px; color: var(--tc-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.teamcal .mgrid .md.out .dn { color: var(--tc-faint); }
+.teamcal .mgrid .md.today { background: var(--tc-today); }
+.teamcal .mgrid .md.today .dn { color: var(--tc-accent); font-weight: 700; }
+.teamcal .mgrid .md.wknd { background: var(--tc-weekend); }
+.teamcal .chip { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--tc-ink);
+  background: color-mix(in srgb, var(--emp) 14%, #fff); border-left: 3px solid var(--emp); border-radius: 3px;
+  padding: 1px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teamcal .more { font-size: 10px; color: var(--tc-muted); }
+/* company-wide holiday week: one hatched band across all 7 day columns */
+.teamcal .ferie { grid-column: 2 / span 7;
+  background: repeating-linear-gradient(45deg, var(--tc-sink), var(--tc-sink) 7px, transparent 7px, transparent 14px);
+  border-bottom: 1px solid var(--tc-line-soft); display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; color: var(--tc-muted); font-weight: 600; min-height: 34px; letter-spacing: .03em; }
+
+/* month variant B: employee x week table */
+.teamcal .mtable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.teamcal .mtable th, .teamcal .mtable td { border-bottom: 1px solid var(--tc-line-soft); padding: 9px 10px; text-align: center; }
+.teamcal .mtable thead th { background: var(--tc-panel-2); color: var(--tc-muted); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .06em; font-weight: 600; border-bottom: 1px solid var(--tc-line); }
+.teamcal .mtable th.emp, .teamcal .mtable td.emp { text-align: left; }
+.teamcal .mtable td.emp { color: var(--tc-ink); }
+.teamcal .mtable .mini { display: inline-flex; align-items: center; gap: 8px; }
+.teamcal .mtable .cnt { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--tc-ink); }
+.teamcal .mtable .bar { height: 7px; border-radius: 4px; background: var(--emp); display: inline-block; }
+.teamcal .mtable .empc { width: 18px; height: 18px; border-radius: 50%; background: var(--emp); color: #fff;
+  font-size: 9.5px; font-weight: 700; display: inline-grid; place-items: center; }
+.teamcal .mtable tbody tr:hover { background: var(--row-striped); }
+.teamcal .mtable td.ferie-col {
+  background: repeating-linear-gradient(45deg, var(--tc-sink), var(--tc-sink) 6px, transparent 6px, transparent 12px);
+  color: var(--tc-muted); font-size: 11px; }
+.teamcal .mtable tfoot td { border-top: 1px solid var(--tc-line); border-bottom: 0; font-weight: 600;
+  color: var(--tc-ink); background: var(--tc-panel-2); font-variant-numeric: tabular-nums; }

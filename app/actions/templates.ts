@@ -5,11 +5,14 @@
 // recipient and return a confirmation the UI shows as feedback (the click is
 // wired to a real server round-trip; actual delivery is out of scope).
 
+import { guardAction } from "@/lib/api-auth";
+
 export type TestSendResult = { ok: boolean; message: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function sendTestMessage(channel: "email" | "sms", to: string): Promise<TestSendResult> {
+  await guardAction();
   const v = (to ?? "").trim();
   if (channel === "email") {
     if (!EMAIL_RE.test(v)) return { ok: false, message: "Angiv en gyldig e-mailadresse." };

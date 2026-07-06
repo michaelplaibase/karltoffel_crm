@@ -5,6 +5,7 @@
 // messages (recipient resolution is real; delivery is stubbed), subscription
 // optimization and price adjustment.
 import { prisma } from "@/lib/db";
+import { guardAction } from "@/lib/api-auth";
 import { regenerateFutureOrders } from "@/lib/recurrence";
 import { revalidatePath } from "next/cache";
 
@@ -13,6 +14,7 @@ export type ActionState = { error?: string; ok?: boolean; message?: string };
 // ---- Holidays --------------------------------------------------------------
 
 export async function createHoliday(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await guardAction();
   const start = String(formData.get("startWeek") ?? "");
   const end = String(formData.get("endWeek") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return { error: "Vælg start- og slutuge." };
@@ -27,6 +29,7 @@ export async function createHoliday(_prev: ActionState, formData: FormData): Pro
 }
 
 export async function deleteHoliday(id: number): Promise<void> {
+  await guardAction();
   await prisma.holidayWeek.delete({ where: { id } });
   revalidatePath("/holidays");
   revalidatePath("/calendar");
@@ -40,6 +43,7 @@ export type Recipient = { name: string; email: string; phone: string };
 /** Resolve the customers a group message would reach — real DB query keyed off
  *  the chosen Kundegruppe (+ Dato/Uge). Used by both "Vis modtagere" and Send. */
 export async function resolveRecipients(group: string, dateISO: string, weekISO: string): Promise<Recipient[]> {
+  await guardAction();
   const g = (group || "").toLowerCase();
   const ids = new Set<number>();
   const notDone = g.includes("ikke-afsluttede") ? { status: { not: "Afsluttet" } } : {};
@@ -72,6 +76,7 @@ export async function resolveRecipients(group: string, dateISO: string, weekISO:
 /** Send a group message. Recipient resolution is real; the actual e-mail/SMS
  *  delivery is stubbed (no provider in this internal clone). */
 export async function sendGroupMessage(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await guardAction();
   const group = String(formData.get("group") ?? "");
   const body = String(formData.get("body") ?? "").trim();
   if (!group) return { error: "Vælg en kundegruppe." };
@@ -96,6 +101,7 @@ const weekNumOf = (s: { startWeek: string | null; nextWeek: string | null }): nu
  *  propose moving up to a few from the busiest week to the lightest, to even out
  *  the workload. Read-only — the moves are applied by applyOptimization. */
 export async function computeOptimization(): Promise<OptimizationResult> {
+  await guardAction();
   const subs = await prisma.subscription.findMany({ where: { active: true }, include: { contact: true } });
   const byWeek = new Map<number, { pk: number; displayNo: number; customer: string }[]>();
   for (const s of subs) {
@@ -122,6 +128,7 @@ export async function computeOptimization(): Promise<OptimizationResult> {
  *  regenerate its future orders. Customer notification (via `notify` channel) is
  *  stubbed and reflected in the returned message. */
 export async function applyOptimization(pks: number[], toWeek: number, notify = "Både SMS og e-mail"): Promise<ActionState> {
+  await guardAction();
   if (!pks.length) return { error: "Ingen abonnementer at flytte." };
   for (const pk of pks) {
     await prisma.subscription.update({ where: { id: pk }, data: { startWeek: `Uge ${toWeek}`, nextWeek: `Uge ${toWeek}` } });
@@ -155,6 +162,7 @@ function roundKr(v: number, mode: string): number {
 /** Compute the price adjustment for the chosen scope: which task lines change and
  *  their new prices. Read-only — applied by applyPriceAdjustment. */
 export async function computePriceAdjustment(percent: number, scope: string, rounding: string): Promise<PriceAdj[]> {
+  await guardAction();
   const wantSub = !scope.includes("kun fastprisaftaler");
   const wantFixed = !scope.includes("kun abonnementer");
   const or = [
@@ -172,6 +180,7 @@ export async function computePriceAdjustment(percent: number, scope: string, rou
 
 /** Apply a computed price adjustment (updates the task-line prices). */
 export async function applyPriceAdjustment(adjustments: { taskId: number; newPrice: number }[]): Promise<ActionState> {
+  await guardAction();
   if (!adjustments.length) return { error: "Ingen opgaver at justere." };
   await prisma.$transaction(adjustments.map((a) => prisma.taskLine.update({ where: { id: a.taskId }, data: { price: a.newPrice } })));
   revalidatePath("/subscriptions");
