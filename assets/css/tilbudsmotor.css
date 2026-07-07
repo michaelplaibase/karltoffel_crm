@@ -148,19 +148,21 @@
 .tm-flow .col-head h3{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gul);font-weight:700}
 .tm-flow .col-head .meta{font-size:12px;color:rgba(255,255,240,.6)}
 
-/* Venstre: slanke én-linjes kort */
+/* Venstre: service-kort som bevidst grid (ikke flex-wrap).
+   Base (mobil + smal tablet): 2 rækker — checkbox + navn øverst; meta-række
+   under navnet med pris i venstre kant og frekvens i højre kant. */
 .tm-flow .rows{display:flex;flex-direction:column;gap:9px}
-.tm-flow .row{display:flex;align-items:center;flex-wrap:wrap;gap:12px;background:var(--gul);color:var(--brun);border-radius:13px;padding:8px 14px}
+.tm-flow .row{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"chk navn navn" ".  pw  fw";column-gap:12px;row-gap:9px;align-items:center;background:var(--gul);color:var(--brun);border-radius:13px;padding:12px 15px}
 .tm-flow .row--incl{background:#fbf3ad}
-.tm-flow .row input[type=checkbox]{width:21px;height:21px;accent-color:var(--brun);flex:none;cursor:pointer}
-.tm-flow .row .navn{flex:1 1 130px;min-width:0;font-size:15px;font-weight:700;line-height:1.2;cursor:pointer}
-/* Pris pr. gang — label over tallet */
-.tm-flow .pw{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none;min-width:92px}
+.tm-flow .row input[type=checkbox]{grid-area:chk;width:21px;height:21px;accent-color:var(--brun);cursor:pointer}
+.tm-flow .row .navn{grid-area:navn;min-width:0;font-size:15px;font-weight:700;line-height:1.2;cursor:pointer}
+/* Pris pr. gang — label over tallet (venstrestillet på mobil) */
+.tm-flow .pw{grid-area:pw;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:92px}
 .tm-flow .pw-lbl{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--bronze);font-weight:700;white-space:nowrap}
 .tm-flow .pw-val{font-size:15px;font-weight:800;color:var(--brun);font-variant-numeric:tabular-nums}
 .tm-flow .pw-note{font-size:12.5px;color:var(--bronze);font-weight:600;white-space:nowrap;text-align:center}
-/* Frekvens — "Besøg om året" over stepperen (alle rækker) */
-.tm-flow .fw{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none;min-width:118px}
+/* Frekvens — "Besøg om året" over stepperen (højrestillet på mobil) */
+.tm-flow .fw{grid-area:fw;display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:118px}
 .tm-flow .fw-lbl{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--bronze);font-weight:700;white-space:nowrap}
 .tm-flow .fw-ctl{display:flex;align-items:center;gap:8px}
 .tm-flow .fw-ctl button{width:36px;height:36px;border-radius:9px;border:0;background:var(--brun);color:var(--gul);font-size:19px;font-weight:700;line-height:1;display:grid;place-items:center}
@@ -191,6 +193,11 @@
   .tm-flow .col.left{padding-left:2px;padding-right:22px}
   .tm-flow .col.right{padding-left:22px;padding-right:2px;border-left:1px solid rgba(255,248,123,.16)}
 }
+/* Bred desktop: kortet på én linje (den godkendte enkeltlinje-visning) */
+@media (min-width:1024px){
+  .tm-flow .row{grid-template-columns:auto 1fr auto auto;grid-template-areas:"chk navn pw fw";column-gap:16px;row-gap:0;padding:10px 16px}
+  .tm-flow .row .pw,.tm-flow .row .fw{align-items:center}
+}
 
 /* Kundetype-kortene (trin 2) skal have ENS bredde, når de stakker */
 @media (max-width:720px){ .tm-flow .ktype-card{width:100%} }
@@ -207,6 +214,8 @@
   .tm-flow .cta-inner .sum b{font-size:20px}
   .tm-flow .btn-cta{padding:14px 18px;white-space:nowrap}
 }
+/* Cookie-samtykke-badgen (fixed, nederst til venstre) må ikke dække pris-teksten på smalle skærme */
+@media (max-width:600px){ .tm-flow .cta-inner .sum{padding-left:46px} }
 .tm-flow .cta-inner .sum{min-width:0}
 .tm-flow .cta-inner .sum b{font-size:24px;white-space:nowrap}
 .tm-flow .cta-inner .sum small{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
