@@ -21,6 +21,16 @@
 /* Sidste indholdssektion beholder sin oprindelige bundluft mod footeren. */
 .main-wrap .section--type-cta{ padding-bottom:100px !important; }
 
+/* CTA-sektionens to celler (tekst + tekst/knap) ligger side om side på desktop
+   via Foundation-grid'et, men grid'et har kun vandrette gutters (grid-margin-x).
+   Når cellerne stakker på mobil, rører de to afsnit derfor hinanden (0px imellem).
+   Giv den stakkede celle lidt luft, så afsnittene står skarpt adskilt. */
+@media (max-width:639px){
+  .main-wrap .section--type-cta .grid-margin-x > .cell + .cell{
+    margin-top:20px !important;
+  }
+}
+
 /* Tilbudsmotoren ligger inde i pakke-sektionen (ikke et top-niveau-skift).
    Nulstil headerens bundafstand og giv motoren 100px over og under, så den
    følger samme rytme som de øvrige skift. */
