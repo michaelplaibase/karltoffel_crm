@@ -14,8 +14,9 @@
   margin-bottom:0 !important;
 }
 
-/* Hero ligger flush mod toppen (under den faste header) — ingen top-luft. */
-.main-wrap .section--type-hero-big-button{ padding-top:0 !important; }
+/* Hero (alle typer, også undersidernes "type-hero") ligger flush mod toppen
+   under den faste header — ingen top-luft. */
+.main-wrap [class*="section--type-hero"]{ padding-top:0 !important; }
 
 /* Sidste indholdssektion beholder sin oprindelige bundluft mod footeren. */
 .main-wrap .section--type-cta{ padding-bottom:100px !important; }

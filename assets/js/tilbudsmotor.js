@@ -243,19 +243,6 @@ function koerGravning(done){
   }, 620);
 }
 
-/* Cta-baren er position:fixed, men en ancestor stacking context gør at den
-   maler BAG sidens senere sektioner. Skjul den, når tilbudsmotoren er
-   scrollet ud af viewporten. */
-(function(){
-  const bar = $("cta-bar");
-  if(bar && "IntersectionObserver" in window){
-    new IntersectionObserver(function(es){
-      /* Batches kan indeholde flere entries — den NYESTE afgør synligheden. */
-      bar.classList.toggle("off", !es[es.length - 1].isIntersecting);
-    }, { threshold: 0 }).observe(ROOT);
-  }
-})();
-
 const STEP_ORDER = ["step-adresse","step-kundetype","step-verify","step-losning","step-kontakt"];
 
 /* skipScroll: ved stille gendannelse (persistens) må siden ikke hoppe til
@@ -263,7 +250,6 @@ const STEP_ORDER = ["step-adresse","step-kundetype","step-verify","step-losning"
 function visStep(id, skipScroll){
   ROOT.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
   $(id).classList.add("active");
-  $("cta-bar").classList.toggle("on", id === "step-losning");
   if(!skipScroll) ROOT.scrollIntoView({ block:"start", behavior:"auto" });
   if(id === "step-verify") $("verify-adr").textContent = state.adresse;
   if(id === "step-losning") renderTop();
@@ -378,7 +364,6 @@ btnNej.addEventListener("click", ()=>{
     adrInput.value = ""; visStep("step-adresse"); adrInput.focus();
   }
 });
-$("btn-kontakt").addEventListener("click", ()=>{ $("cta-bar").classList.remove("on"); visStep("step-kontakt"); });
 $("btn-tilbage").addEventListener("click", ()=> visStep("step-losning"));
 
 $("btn-send").addEventListener("click", ()=>{
@@ -572,9 +557,6 @@ function opdater(){
       el.innerHTML = '<span class="pw-lbl">Pris pr. gang</span><b class="pw-val">' + kr(p.pris * p.qty) + '</b>';
     }
   });
-  const r = beregn(PRODUCTS);
-  $("cta-pris").textContent = kr(r.snit);
-  $("cta-detalje").textContent = "Gennemsnitspris pr. besøg · " + r.count + " services · " + r.visits + " besøg om året";
   gemState("step-losning");   /* hver frekvens-/til-fravalgs-ændring overlever refresh */
 }
 
