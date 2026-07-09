@@ -157,6 +157,7 @@
 .tm-flow .pw{grid-area:pw;display:flex;flex-direction:column;align-items:center;gap:2px}
 .tm-flow .pw-lbl{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--bronze);font-weight:700;white-space:nowrap}
 .tm-flow .pw-val{font-size:13px;font-weight:800;color:var(--brun);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tm-flow .pw-unit{font-size:9.5px;letter-spacing:.02em;color:var(--bronze);font-weight:700;white-space:nowrap;line-height:1;margin-top:1px}
 .tm-flow .pw-note{font-size:12.5px;color:var(--bronze);font-weight:600;white-space:nowrap;text-align:center}
 /* Frekvens — "Besøg om året" over stepperen */
 .tm-flow .fw{grid-area:fw;display:flex;flex-direction:column;align-items:center;gap:3px}

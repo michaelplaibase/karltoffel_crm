@@ -543,7 +543,7 @@ function opdater(){
     } else if(!p.qty){
       el.innerHTML = '<span class="pw-note">Pris efter antal</span>';
     } else {
-      el.innerHTML = '<span class="pw-lbl">Pris pr. gang</span><b class="pw-val">' + kr(p.pris * p.qty) + '</b>';
+      el.innerHTML = '<b class="pw-val">' + kr(p.pris * p.qty) + '</b><span class="pw-unit">pr. gang</span>';
     }
   });
   gemState("step-losning");   /* hver frekvens-/til-fravalgs-ændring overlever refresh */
