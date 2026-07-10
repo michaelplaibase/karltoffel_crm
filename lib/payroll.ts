@@ -8,12 +8,17 @@ export type PayrollRow = {
   payModel: "fast" | "akkord";
   antalOrdrer: number;
   omsaetning: number;        // kr, inkl. moms (sum af TaskLine.price)
+  omsaetningExMoms: number;  // kr, ekskl. moms — grundlag for provision
   commissionPct: number | null;
-  provision: number | null;  // akkord: omsætning × pct
+  provision: number | null;  // akkord: omsætning EKSKL. moms × pct
   fastLoen: number | null;   // fast: manuelt månedsbeløb
 };
 
 export type Payroll = { fromISO: string; toISO: string; rows: PayrollRow[] };
+
+// Priser gemmes inkl. moms; akkordløn beregnes af beløbet EKSKL. moms.
+const MOMS = 0.25;                       // dansk moms 25 %
+const DEFAULT_COMMISSION_PCT = 43;       // standard akkordsats
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -50,15 +55,17 @@ export async function getPayroll(fromISO?: string, toISO?: string): Promise<Payr
   const rows: PayrollRow[] = users.map((u) => {
     const a = agg.get(u.id) ?? { antal: 0, oms: 0 };
     const model = u.payModel === "akkord" ? "akkord" : "fast";
-    const pct = u.commissionPct ?? 40;
+    const pct = u.commissionPct ?? DEFAULT_COMMISSION_PCT;
+    const omsEx = a.oms / (1 + MOMS);   // grundlag ekskl. moms
     return {
       id: u.id,
       navn: `${u.firstName} ${u.lastName}`.trim(),
       payModel: model,
       antalOrdrer: a.antal,
       omsaetning: a.oms,
+      omsaetningExMoms: Math.round(omsEx),
       commissionPct: model === "akkord" ? pct : null,
-      provision: model === "akkord" ? Math.round((a.oms * pct) / 100) : null,
+      provision: model === "akkord" ? Math.round((omsEx * pct) / 100) : null,
       fastLoen: model === "fast" ? u.monthlySalary : null,
     };
   });

@@ -10,7 +10,7 @@ import type { UserRow } from "@/lib/users";
 function PayEditor({ u }: { u: UserRow }) {
   const [model, setModel] = useState<"fast" | "akkord">(u.payModel);
   const [belob, setBelob] = useState<string>(
-    u.payModel === "akkord" ? String(u.commissionPct ?? 40) : (u.monthlySalary != null ? String(u.monthlySalary) : "")
+    u.payModel === "akkord" ? String(u.commissionPct ?? 43) : (u.monthlySalary != null ? String(u.monthlySalary) : "")
   );
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -107,7 +107,7 @@ export default function UserManager({ users }: { users: UserRow[] }) {
                 </select>
               </div></div>
               <div className="f2"><label className="col-label">{createPay === "akkord" ? "Provisionssats (%)" : "Fast løn (kr/md)"}</label><div>
-                <input name="belob" type="number" min="0" className="form-control form-control-sm" placeholder={createPay === "akkord" ? "fx 40" : "fx 32000"} />
+                <input name="belob" type="number" min="0" className="form-control form-control-sm" placeholder={createPay === "akkord" ? "fx 43" : "fx 32000"} />
               </div></div>
               {state.error ? <div className="help-note" style={{ color: "var(--danger, #C4183C)" }}>{state.error}</div> : null}
               <hr className="section-hr" />

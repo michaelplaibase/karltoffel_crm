@@ -9,13 +9,14 @@ import { revalidatePath } from "next/cache";
 
 export type UserState = { error?: string; ok?: boolean };
 
-// Fast løn = manuelt beløb (kr/md). Akkord = provisionssats i % (default 40).
+// Fast løn = manuelt beløb (kr/md). Akkord = provisionssats i % (default 43,
+// beregnes af omsætning ekskl. moms — se lib/payroll.ts).
 function payFields(payModel: string, belob: number | null) {
   const model = payModel === "akkord" ? "akkord" : "fast";
   const b = belob != null && Number.isFinite(belob) && belob >= 0 ? Math.round(belob) : null;
   return {
     payModel: model,
-    commissionPct: model === "akkord" ? (b ?? 40) : null,
+    commissionPct: model === "akkord" ? (b ?? 43) : null,
     monthlySalary: model === "fast" ? b : null,
   };
 }
