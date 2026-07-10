@@ -357,5 +357,40 @@ export const GUIDES: Guide[] = [
       "Ferieplanlægning skubber kun abonnementsordrer — manuelle og online ordrer i ferieugerne skal du selv flytte.",
       "Kunderne får ikke automatisk besked om ferie — send en gruppebesked (f.eks. til \"Alle ordrer i en bestemt uge\") for at orientere dem."
     ]
+  },
+  {
+    "title": "Sådan ser du akkordløn (Lønrapport)",
+    "slug": "loenrapport",
+    "audience": "Administratorer (kun admin har adgang til lønrapporten).",
+    "intro": "Lønrapporten viser, hvor meget hver medarbejder har optjent i en valgt periode. Medarbejdere er enten på akkord (provision) eller fast løn. Akkordløn beregnes som medarbejderens sats (standard 43 %) af omsætningen EKSKL. moms for de ordrer, medarbejderen har fået udført i perioden. Fast løn vises som det månedsbeløb, du selv har sat på brugeren. Denne guide viser, hvor du finder rapporten, hvordan du læser den, og hvordan du sætter en medarbejder på akkord.",
+    "steps": [
+      {
+        "title": "Åbn Lønrapporten",
+        "body": "1. Log ind som administrator (f.eks. kristianklercke).\n2. Klik på \"Rapportering\" i topmenuen.\n3. Vælg \"Lønrapport\".\nEr du ikke administrator, får du beskeden \"Kun administratorer har adgang til lønrapporten.\""
+      },
+      {
+        "title": "Vælg perioden",
+        "body": "Øverst på siden vælger du, hvilken periode rapporten skal dække:\n1. Sæt en dato i feltet \"Fra\" og i feltet \"Til\".\n2. Klik på \"Vis periode\".\nSom standard (uden at ændre noget) viser rapporten fra den 1. i indeværende måned til i dag. Perioden filtreres på ordrernes plandato — altså hvornår ordren var planlagt til at blive udført."
+      },
+      {
+        "title": "Læs tabellen",
+        "body": "Rapporten har én række pr. medarbejder med kolonnerne:\n• Medarbejder — navnet.\n• Lønmodel — enten \"Akkord 43%\" (med den valgte sats) eller \"Fast løn\".\n• Udførte ordrer — antal ordrer med status \"Udført\", der er tildelt medarbejderen i perioden.\n• Omsætning (inkl. moms) — summen af ordrepriserne (priser gemmes inkl. moms).\n• Grundlag (ekskl. moms) — omsætningen ÷ 1,25. Det er beløbet, provisionen regnes af.\n• Provision / Fast løn — for akkord: sats × grundlag (f.eks. 43 % af beløbet ekskl. moms). For fast løn: det månedsbeløb, der er sat på brugeren.\nAkkordlønnen er altså tallet i den sidste kolonne for de medarbejdere, der står som \"Akkord\"."
+      },
+      {
+        "title": "Sæt en medarbejder på akkord (eller fast løn)",
+        "body": "Provision vises kun, hvis medarbejderen er sat på akkord. Det gør du sådan:\n1. Gå til \"Indstillinger\" → \"Brugere\".\n2. Find medarbejderen i tabellen og kig i kolonnen \"Lønmodel\".\n3. Vælg \"Akkord\" i rullelisten, skriv satsen (f.eks. 43) i feltet, og klik \"Gem\".\n4. Skal medarbejderen på fast løn i stedet: vælg \"Fast løn\", skriv månedsbeløbet (f.eks. 32000), og klik \"Gem\".\nDu kan også sætte lønmodellen med det samme, når du opretter en ny bruger, i felterne \"Lønmodel\" og beløb. Ændringen slår igennem i lønrapporten med det samme."
+      },
+      {
+        "title": "Hvornår tæller en ordre med i provisionen?",
+        "body": "En ordre indgår i en medarbejders akkordløn, når ALLE tre ting passer:\n1. Ordren har status \"Udført\" (afsluttet via \"Afslut ordre\" med leveringsstatus \"Udført\").\n2. Ordren er tildelt netop den medarbejder.\n3. Ordrens plandato ligger inden for den valgte periode.\nEr medarbejderen på fast løn, eller er der endnu ingen udførte ordrer i perioden, står der \"—\" eller \"0 kr\" i rækken."
+      }
+    ],
+    "tips": [
+      "Akkordløn regnes altid af beløbet EKSKL. moms (omsætning ÷ 1,25) — kolonnen \"Grundlag (ekskl. moms)\" viser præcis det beløb, satsen ganges på.",
+      "Standardsatsen er 43 %, men du kan sætte en anden sats pr. medarbejder under Indstillinger → Brugere.",
+      "Kun ordrer med status \"Udført\" tæller med — husk derfor at afslutte ordrer via \"Afslut ordre\", ellers indgår de ikke i lønnen.",
+      "Perioden filtreres på ordrens plandato, ikke på hvornår den blev afsluttet.",
+      "Fast løn er et fast månedsbeløb, du selv sætter — det påvirkes ikke af, hvor mange ordrer der er udført."
+    ]
   }
 ];
