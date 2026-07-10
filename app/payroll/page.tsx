@@ -27,8 +27,8 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
     <div className="container-1140">
       <h1 className="page-title">Lønrapport</h1>
       <p className="page-desc">
-        Provision = medarbejderens sats × omsætning af <b>udførte</b> ordrer i perioden (efter plandato, inkl. moms).
-        Fast løn vises som det manuelt satte månedsbeløb.
+        Provision = medarbejderens sats × omsætning <b>ekskl. moms</b> af <b>udførte</b> ordrer i perioden (efter plandato).
+        Priser er gemt inkl. 25 % moms, så grundlaget er pris ÷ 1,25. Fast løn vises som det manuelt satte månedsbeløb.
       </p>
 
       <div className="card">
@@ -44,12 +44,12 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
               <thead>
                 <tr>
                   <th>Medarbejder</th><th>Lønmodel</th><th>Udførte ordrer</th>
-                  <th>Omsætning (inkl. moms)</th><th>Provision / Fast løn</th>
+                  <th>Omsætning (inkl. moms)</th><th>Grundlag (ekskl. moms)</th><th>Provision / Fast løn</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
-                  <tr><td colSpan={5}><div className="table-empty">Ingen brugere</div></td></tr>
+                  <tr><td colSpan={6}><div className="table-empty">Ingen brugere</div></td></tr>
                 ) : rows.map((r) => (
                   <tr key={r.id}>
                     <td>{r.navn}</td>
@@ -60,6 +60,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
                     </td>
                     <td className="num">{r.antalOrdrer}</td>
                     <td className="num">{kr(r.omsaetning)}</td>
+                    <td className="num">{kr(r.omsaetningExMoms)}</td>
                     <td className="num">
                       {r.payModel === "akkord"
                         ? <b>{kr(r.provision ?? 0)}</b>
