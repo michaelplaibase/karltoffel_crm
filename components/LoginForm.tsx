@@ -21,6 +21,12 @@ export default function LoginForm() {
             <label>Adgangskode</label>
             <input name="password" type="password" className="form-control form-control-sm" autoComplete="current-password" />
           </div>
+          <div className="f2">
+            <label>Husk mig</label>
+            <label className="form-check-inline" style={{ marginTop: 6 }}>
+              <input type="checkbox" name="remember" defaultChecked /> Hold mig logget ind i 30 dage
+            </label>
+          </div>
 
           {state.error && <div style={{ color: "#c0392b", fontSize: 13, margin: "4px 0 8px" }}>{state.error}</div>}
 

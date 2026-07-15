@@ -4,6 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { TOP_NAV, ACCOUNT_MENU, COMPANY_NAME } from "@/lib/nav";
+import { logout } from "@/app/actions/auth";
+
+// "Log ud" som POST-knap (server-action) i stedet for et GET-link — så Next.js'
+// viewport-prefetch ikke sletter sessionen uden et klik. Stylet som menupunktet.
+const logoutBtnStyle: React.CSSProperties = { width: "100%", textAlign: "left", background: "none", border: 0, cursor: "pointer", font: "inherit", color: "inherit" };
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -105,9 +110,15 @@ export default function Navbar() {
         {open === "__acct" && (
           <div className="dropdown-menu right">
             {ACCOUNT_MENU.map((it) => (
-              <Link key={it.href} href={it.href} className="dropdown-item">
-                <span>{it.label}</span>
-              </Link>
+              it.href === "/logout" ? (
+                <form key={it.href} action={logout}>
+                  <button type="submit" className="dropdown-item" style={logoutBtnStyle}><span>{it.label}</span></button>
+                </form>
+              ) : (
+                <Link key={it.href} href={it.href} className="dropdown-item">
+                  <span>{it.label}</span>
+                </Link>
+              )
             ))}
           </div>
         )}
@@ -167,8 +178,15 @@ export default function Navbar() {
           <div className="mn-acct">
             <div className="mn-acct-name"><i className="bi bi-person-circle" /> {COMPANY_NAME}</div>
             {ACCOUNT_MENU.map((it) => (
-              <Link key={it.href} href={it.href} className="mn-sublink"
-                onClick={() => setMobileOpen(false)}>{it.label}</Link>
+              it.href === "/logout" ? (
+                <form key={it.href} action={logout}>
+                  <button type="submit" className="mn-sublink" style={logoutBtnStyle}
+                    onClick={() => setMobileOpen(false)}>{it.label}</button>
+                </form>
+              ) : (
+                <Link key={it.href} href={it.href} className="mn-sublink"
+                  onClick={() => setMobileOpen(false)}>{it.label}</Link>
+              )
             ))}
           </div>
         </div>
