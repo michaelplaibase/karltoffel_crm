@@ -43,10 +43,22 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     return { error: "Forkert brugernavn eller adgangskode." };
   }
 
-  const token = await signSession(user.id);
+  // "Husk mig" (default til): 30 dages login, ellers 7 dage. Cookie-maxAge og
+  // token-exp holdes ens, så cookien ikke overlever tokenet (eller omvendt).
+  const ttl = formData.get("remember") != null ? 60 * 60 * 24 * 30 : SESSION_TTL_SECONDS;
+  const token = await signSession(user.id, ttl);
   (await cookies()).set(SESSION_COOKIE, token, {
-    httpOnly: true, sameSite: "lax", path: "/", maxAge: SESSION_TTL_SECONDS,
+    httpOnly: true, sameSite: "lax", path: "/", maxAge: ttl,
     secure: process.env.NODE_ENV === "production",
   });
   redirect("/calendar");
+}
+
+// Log ud via POST (server-action). BEVIDST ikke et GET-link: Next.js prefetcher
+// links i viewport i produktion, og et prefetch af et GET-/logout ville slette
+// sessionen uden et klik (den oprindelige "man bliver logget ud"-bug). En POST
+// prefetches aldrig.
+export async function logout(): Promise<void> {
+  (await cookies()).delete(SESSION_COOKIE);
+  redirect("/login");
 }

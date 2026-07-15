@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import SettingsButtons from "@/components/SettingsButtons";
+import { logout } from "@/app/actions/auth";
 
 export const metadata = { title: "Konto · Karltoffel" };
 
@@ -49,7 +50,7 @@ export default async function AccountPage() {
 
       <div className="row-actions">
         <Link href="/change-password" className="btn btn-light">Skift password</Link>
-        <Link href="/logout" className="btn btn-outline-secondary">Log ud</Link>
+        <form action={logout}><button type="submit" className="btn btn-outline-secondary">Log ud</button></form>
       </div>
     </div>
   );
