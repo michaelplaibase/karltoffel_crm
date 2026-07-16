@@ -15,6 +15,16 @@
 /* Mobil-drawer: nav-links har 24px indryk — flugt switchen med dem. */
 .drawer__nav .nav__item--kundetype .kt-switch{align-self:flex-start;margin:0 24px}
 
+/* --- Slank top-bar OVER hovednavigationen (desktop): højrestillet switch. --- */
+/* Cremefarvet flade som headeren, brun tekst, gul aktiv-accent — ren adskillelse
+   fra hovednavigationen, så CTA'en forbliver det primære fokus. */
+.kt-topbar{background:#FFFFF0;border-bottom:1px solid rgba(76,55,24,.14)}
+.kt-topbar__inner{display:flex;justify-content:flex-end;align-items:center;max-width:1600px;margin:0 auto;padding:7px 32px}
+.kt-topbar .kt-switch{margin:0}
+.kt-topbar .kt-switch__btn{padding:5px 12px;font-size:12px}
+/* Under desktop-breakpoint (64em): skjul top-bar — switchen bor i mobil-draweren. */
+@media screen and (max-width:63.99875em){.kt-topbar{display:none}}
+
 /* --- Førstegangs-modal på forsiden ("Privat eller erhverv?") --- */
 /* Genbruger tilbudsmotorens ktype-kort-udtryk (brun flade, bronze-kant, gul hover). */
 .kt-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(28,20,8,.6)}

@@ -30,29 +30,49 @@ var IKON = {
 	erhverv: '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="10" y="8" width="20" height="32" stroke="#FFF87B" stroke-width="3" stroke-linejoin="round"/><path d="M30 18h8v22H10" stroke="#FFF87B" stroke-width="3" stroke-linejoin="round"/><path d="M16 15h3M21 15h3M16 21h3M21 21h3M16 27h3M21 27h3" stroke="#FFF87B" stroke-width="3" stroke-linecap="round"/></svg>'
 };
 
-/* ---- Header-switch: Privat | Erhverv (desktop-nav + mobil-drawer) ---- */
-function byggSwitch(){
+/* ---- Fabrik: én Privat|Erhverv-switch (genbruges i top-bar + mobil-drawer) ---- */
+function lavSwitch(){
 	var valgt = laesValg();
-	var lister = document.querySelectorAll(".header .nav__items");
-	for (var i = 0; i < lister.length; i++){
+	var wrap = document.createElement("div");
+	wrap.className = "kt-switch";
+	wrap.setAttribute("role", "group");
+	wrap.setAttribute("aria-label", "Privat eller erhverv");
+	["privat", "erhverv"].forEach(function(t){
+		var b = document.createElement("button");
+		b.type = "button";
+		b.className = "kt-switch__btn" + (valgt === t ? " is-active" : "");
+		b.setAttribute("aria-pressed", valgt === t ? "true" : "false");
+		b.setAttribute("data-kt", t);
+		b.textContent = t === "privat" ? "Privat" : "Erhverv";
+		b.addEventListener("click", function(){ gemValg(t); gaaTil(t); });
+		wrap.appendChild(b);
+	});
+	return wrap;
+}
+
+/* ---- Placering: slank top-bar OVER hovednavigationen (desktop, højrestillet)
+   + samme switch i mobil-draweren. Holder hovednavigationen ren og CTA'en
+   som primært fokus. ---- */
+function byggSwitch(){
+	/* Desktop: top-bar indsat lige før <header>, så den ligger over navigationen
+	   og ruller væk ved scroll (header'en er sticky og forbliver i toppen). */
+	var header = document.querySelector(".header");
+	if(header && header.parentNode && !document.querySelector(".kt-topbar")){
+		var bar = document.createElement("div");
+		bar.className = "kt-topbar";
+		var inner = document.createElement("div");
+		inner.className = "kt-topbar__inner";
+		inner.appendChild(lavSwitch());
+		bar.appendChild(inner);
+		header.parentNode.insertBefore(bar, header);
+	}
+	/* Mobil-drawer: behold switchen i menuen (top-bar er skjult på mobil). */
+	var dLister = document.querySelectorAll(".drawer__nav .nav__items");
+	for (var i = 0; i < dLister.length; i++){
 		var li = document.createElement("li");
 		li.className = "nav__item nav__item--kundetype";
-		var wrap = document.createElement("div");
-		wrap.className = "kt-switch";
-		wrap.setAttribute("role", "group");
-		wrap.setAttribute("aria-label", "Privat eller erhverv");
-		["privat", "erhverv"].forEach(function(t){
-			var b = document.createElement("button");
-			b.type = "button";
-			b.className = "kt-switch__btn" + (valgt === t ? " is-active" : "");
-			b.setAttribute("aria-pressed", valgt === t ? "true" : "false");
-			b.setAttribute("data-kt", t);
-			b.textContent = t === "privat" ? "Privat" : "Erhverv";
-			b.addEventListener("click", function(){ gemValg(t); gaaTil(t); });
-			wrap.appendChild(b);
-		});
-		li.appendChild(wrap);
-		lister[i].appendChild(li);
+		li.appendChild(lavSwitch());
+		dLister[i].appendChild(li);
 	}
 }
 
