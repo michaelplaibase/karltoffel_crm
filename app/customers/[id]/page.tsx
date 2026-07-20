@@ -76,11 +76,11 @@ export default async function CustomerDetail({
         </div>
         <div className="card-body tight">
           <div className="table-wrap">
-            <table className="data-table">
+            <table className="data-table stack">
               <thead><tr><th style={{ width: 34 }} /><th>Abo. nr.</th><th>Leveringsadresse</th><th>Opgaver</th><th>Interval</th><th>Pris</th><th>Fast medarb.</th><th>Fremtidige ordrer</th></tr></thead>
               <tbody>
                 {subs.length === 0 ? (
-                  <tr><td colSpan={8}><div className="table-empty">Ingen abonnementer</div></td></tr>
+                  <tr><td colSpan={8} data-fullspan><div className="table-empty">Ingen abonnementer</div></td></tr>
                 ) : subs.map((s) => (
                   <tr key={s.id}>
                     <td><RowMenu items={[
@@ -88,16 +88,16 @@ export default async function CustomerDetail({
                       { label: "Stop abonnement…", danger: true, action: stopSubscription.bind(null, s.pk),
                         confirm: { title: "Stop abonnement", body: `Vil du stoppe abonnement #${s.id}? Der oprettes ikke flere ordrer, og kommende uleverede (ulåste) ordrer fjernes fra kalenderen.`, confirmLabel: "Stop abonnement", note: "Denne handling kan ikke fortrydes." } },
                     ]} /></td>
-                    <td className="num">
+                    <td className="num" data-label="Abo. nr.">
                       <Link href={`/subscriptions/${s.id}`}>{s.id}</Link>
                       {s.pending ? <span className="badge badge-soft-warning" style={{ marginLeft: 6 }}>Afventende</span> : null}
                     </td>
-                    <td>{s.deliveryAddress}</td>
-                    <td>{s.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
-                    <td>{s.tasks.map((t, i) => <div key={i}>{t.interval}</div>)}</td>
-                    <td className="num">{s.tasks.map((t, i) => <div key={i}>{money(t.price)}</div>)}</td>
-                    <td>{s.fixedEmployee}</td>
-                    <td>{s.nextWeek}</td>
+                    <td data-label="Leveringsadresse">{s.deliveryAddress}</td>
+                    <td data-label="Opgaver">{s.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
+                    <td data-label="Interval">{s.tasks.map((t, i) => <div key={i}>{t.interval}</div>)}</td>
+                    <td className="num" data-label="Pris">{s.tasks.map((t, i) => <div key={i}>{money(t.price)}</div>)}</td>
+                    <td data-label="Fast medarb.">{s.fixedEmployee}</td>
+                    <td data-label="Fremtidige ordrer">{s.nextWeek}</td>
                   </tr>
                 ))}
               </tbody>
@@ -113,11 +113,11 @@ export default async function CustomerDetail({
         </div>
         <div className="card-body tight">
           <div className="table-wrap">
-            <table className="data-table">
+            <table className="data-table stack">
               <thead><tr><th style={{ width: 34 }} /><th>Aftale nr.</th><th>Leveringsadresse</th><th>Opgaver</th><th>Pris</th></tr></thead>
               <tbody>
                 {fixedPrices.length === 0 ? (
-                  <tr><td colSpan={5}><div className="table-empty">Ingen fastprisaftaler fundet for kunden</div></td></tr>
+                  <tr><td colSpan={5} data-fullspan><div className="table-empty">Ingen fastprisaftaler fundet for kunden</div></td></tr>
                 ) : fixedPrices.map((f) => (
                   <tr key={f.id}>
                     <td><RowMenu items={[
@@ -125,10 +125,10 @@ export default async function CustomerDetail({
                       { label: "Slet fastprisaftale…", danger: true, action: deleteFixedPrice.bind(null, f.pk),
                         confirm: { title: "Slet fastprisaftale", body: `Er du sikker på, at du vil slette fastprisaftale #${f.id}?`, confirmLabel: "Slet fastprisaftale", note: "Denne handling kan ikke fortrydes." } },
                     ]} /></td>
-                    <td className="num"><Link href={`/fixed-prices/${f.id}`}>{f.id}</Link></td>
-                    <td>{f.deliveryAddress}</td>
-                    <td>{f.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
-                    <td className="num">{f.tasks.map((t, i) => <div key={i}>{money(t.price)}</div>)}</td>
+                    <td className="num" data-label="Aftale nr."><Link href={`/fixed-prices/${f.id}`}>{f.id}</Link></td>
+                    <td data-label="Leveringsadresse">{f.deliveryAddress}</td>
+                    <td data-label="Opgaver">{f.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
+                    <td className="num" data-label="Pris">{f.tasks.map((t, i) => <div key={i}>{money(t.price)}</div>)}</td>
                   </tr>
                 ))}
               </tbody>

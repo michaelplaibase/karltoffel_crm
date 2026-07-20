@@ -50,7 +50,7 @@ function SortTh({ label, k, sort, onSort }: { label: string; k: SortKey; sort: S
 function OrdersTable({ rows, sort, onSort, emptyText }: { rows: Order[]; sort: Sort; onSort: (k: SortKey) => void; emptyText: string }) {
   return (
     <div className="table-wrap">
-      <table className="data-table">
+      <table className="data-table stack">
         <thead><tr>
           <th style={{ width: 34 }} />
           <SortTh label="Ordre nr." k="id" sort={sort} onSort={onSort} />
@@ -63,7 +63,7 @@ function OrdersTable({ rows, sort, onSort, emptyText }: { rows: Order[]; sort: S
         </tr></thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={8}><div className="table-empty">{emptyText}</div></td></tr>
+            <tr><td colSpan={8} data-fullspan><div className="table-empty">{emptyText}</div></td></tr>
           ) : rows.map((o) => {
             const items: RowMenuItem[] = [
               { label: "Vis ordre i kalender", href: `/calendar?week=${o.weekMonday}` },
@@ -78,13 +78,13 @@ function OrdersTable({ rows, sort, onSort, emptyText }: { rows: Order[]; sort: S
             return (
             <tr key={o.id}>
               <td><RowMenu items={items} /></td>
-              <td className="num"><Link href={`/orders/${o.id}`}>{o.id}</Link></td>
-              <td className="num">{o.overdue ? <span className="badge badge-soft-warning">{o.deliveryDate}</span> : o.deliveryDate}</td>
-              <td>{o.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
-              <td className="num">{money(o.tasks.reduce((a, t) => a + t.price, 0))}</td>
-              <td>{o.employee}</td>
-              <td><StatusPill status={o.status} /></td>
-              <td>{o.subscriptionNo ? <Link href={`/subscriptions/${o.subscriptionNo}`}>{o.source}</Link> : o.source}</td>
+              <td className="num" data-label="Ordre nr."><Link href={`/orders/${o.id}`}>{o.id}</Link></td>
+              <td className="num" data-label="Leverings-dato">{o.overdue ? <span className="badge badge-soft-warning">{o.deliveryDate}</span> : o.deliveryDate}</td>
+              <td data-label="Opgaver">{o.tasks.map((t, i) => <div key={i}><CatChip category={t.category} letter={t.letter} /> {t.description}</div>)}</td>
+              <td className="num" data-label="Pris">{money(o.tasks.reduce((a, t) => a + t.price, 0))}</td>
+              <td data-label="Medarbejder">{o.employee}</td>
+              <td data-label="Ordrestatus"><StatusPill status={o.status} /></td>
+              <td data-label="Kilde">{o.subscriptionNo ? <Link href={`/subscriptions/${o.subscriptionNo}`}>{o.source}</Link> : o.source}</td>
             </tr>
             );
           })}
