@@ -4,6 +4,7 @@ import { getOrderDetail } from "@/lib/queries";
 import { deleteOrder } from "@/app/actions/orders";
 import { CatChip, MapLink, StatusPill, money } from "@/components/ui";
 import ConfirmButton from "@/components/ConfirmButton";
+import AttachmentGallery from "@/components/AttachmentGallery";
 
 export const metadata = { title: "Rediger ordre · Karltoffel" };
 
@@ -96,6 +97,13 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
         <div className="card">
           <div className="card-header"><h4 className="section-title">Adressebemærkning</h4></div>
           <div className="card-body tight"><div className="form-static">{o.addressNote}</div></div>
+        </div>
+      ) : null}
+
+      {o.attachments.length > 0 ? (
+        <div className="card">
+          <div className="card-header"><h4 className="section-title">Vedhæftninger</h4></div>
+          <div className="card-body tight"><AttachmentGallery items={o.attachments} /></div>
         </div>
       ) : null}
 

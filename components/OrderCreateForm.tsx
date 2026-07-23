@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import type { OrderCreateState } from "@/app/actions/orders";
 import ContactPicker, { type ContactOption } from "@/components/ContactPicker";
 import TaskLineEditor from "@/components/TaskLineEditor";
+import AttachmentUploader from "@/components/AttachmentUploader";
 
 export type WeekOption = { value: string; label: string };
 
@@ -34,6 +35,13 @@ export default function OrderCreateForm({
         <div className="card-header"><h4 className="section-title">Opgaver på ordren</h4></div>
         <div className="card-body tight">
           <TaskLineEditor minuteRate={minuteRate} />
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><h4 className="section-title">Vedhæftninger</h4></div>
+        <div className="card-body tight">
+          <AttachmentUploader scope="order" />
         </div>
       </div>
 

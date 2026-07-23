@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/db";
 import { guardAction } from "@/lib/api-auth";
 import { categoryColor } from "@/lib/categories";
+import { parseAttachmentRefs, attachmentCreateData } from "@/lib/attachments";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -34,6 +35,7 @@ export async function createOrder(_prev: OrderCreateState, formData: FormData): 
   const week = String(formData.get("week") ?? "");
   const plannedAt = week ? new Date(`${week}T10:00:00Z`) : new Date();
   const user = await prisma.user.findFirst({ where: { active: true } });
+  const attachments = parseAttachmentRefs(formData.get("attachments"));
 
   const order = await prisma.order.create({
     data: {
@@ -49,6 +51,7 @@ export async function createOrder(_prev: OrderCreateState, formData: FormData): 
           description: l.description, price: l.price, durationMin: l.durationMin, sort: i,
         })),
       },
+      attachments: { create: attachmentCreateData(attachments) },
     },
   });
 

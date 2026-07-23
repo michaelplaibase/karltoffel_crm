@@ -232,7 +232,10 @@ export async function getSubscriptionsForContact(contactId: number): Promise<Sub
 
 /** Editor data for a subscription, keyed by its display no ("Abo. nr."). */
 export async function getSubscriptionEditData(displayNo: number) {
-  const s = await prisma.subscription.findUnique({ where: { displayNo }, include: { tasks: true } });
+  const s = await prisma.subscription.findUnique({
+    where: { displayNo },
+    include: { tasks: true, attachments: { orderBy: { sort: "asc" } } },
+  });
   if (!s) return null;
   return {
     pk: s.id,
@@ -243,6 +246,11 @@ export async function getSubscriptionEditData(displayNo: number) {
     fixedEmployee: s.fixedEmployee,
     deliveryAddress: s.deliveryAddress,
     pending: s.pending,
+    attachments: s.attachments.map((a) => ({
+      id: a.id, url: a.url, pathname: a.pathname, contentType: a.contentType,
+      kind: (a.kind === "video" ? "video" : "image") as "image" | "video",
+      sizeBytes: a.sizeBytes, originalName: a.originalName ?? undefined,
+    })),
     tasks: [...s.tasks].sort((a, b) => a.sort - b.sort).map((t) => ({
       description: t.description, price: String(t.price), duration: String(t.durationMin),
       category: t.category, interval: t.intervalMultiplier ?? "Hver gang", nextWeek: t.startWeek ?? "",
@@ -368,12 +376,13 @@ export type OrderDetail = {
   deliveryAddress: string; plannedLabel: string; source: string; employee: string;
   contact: { name: string; street: string; city: string; att: string; phone: string; email: string; cvr: string };
   tasks: TaskLine[]; sumPrice: number; sumDuration: number;
+  attachments: { id: number; kind: "image" | "video"; originalName: string | null }[];
 };
 
 export async function getOrderDetail(id: number): Promise<OrderDetail | null> {
   const o = await prisma.order.findUnique({
     where: { id },
-    include: { tasks: true, subscription: true, employee: true, contact: true },
+    include: { tasks: true, subscription: true, employee: true, contact: true, attachments: { orderBy: { sort: "asc" } } },
   });
   if (!o) return null;
   const tasks = [...o.tasks].sort((a, b) => a.sort - b.sort);
@@ -395,6 +404,7 @@ export async function getOrderDetail(id: number): Promise<OrderDetail | null> {
     tasks: tasks.map(mapTask),
     sumPrice: tasks.reduce((a, t) => a + t.price, 0),
     sumDuration: tasks.reduce((a, t) => a + t.durationMin, 0),
+    attachments: o.attachments.map((a) => ({ id: a.id, kind: a.kind === "video" ? "video" : "image", originalName: a.originalName })),
   };
 }
 
@@ -496,14 +506,14 @@ async function buildWeekPlan(weekMonday: string) {
   const [orders, users] = await Promise.all([
     prisma.order.findMany({
       where: { plannedAt: { gte: start, lt: end } },
-      include: { tasks: true, subscription: true, contact: true },
+      include: { tasks: true, subscription: true, contact: true, attachments: { orderBy: { sort: "asc" } } },
       orderBy: { id: "asc" },
     }),
     prisma.user.findMany({ where: { activeCalendar: true }, orderBy: { id: "asc" } }),
   ]);
   const holiday = await isHolidayWeek(weekMonday);
   const priceById = new Map<number, number>();
-  const metaById = new Map<number, { subNo: number | null; status: string; phone: string | null; tasks: TaskLine[]; comment: string; addressNote: string }>();
+  const metaById = new Map<number, { subNo: number | null; status: string; phone: string | null; tasks: TaskLine[]; comment: string; addressNote: string; attachments: { id: number; kind: "image" | "video" }[] }>();
   // Ferielukket uge: der PLANLÆGGES intet, men allerede-materialiserede ordrer
   // må aldrig blive usynlige — de vises som "Ikke planlagt (ferielukket)".
   const jobs: Job[] = orders.map((o) => {
@@ -513,6 +523,7 @@ async function buildWeekPlan(weekMonday: string) {
       phone: o.contact.phone ?? null,
       tasks: [...o.tasks].sort((a, b) => a.sort - b.sort).map(mapTask),
       comment: o.comment ?? "", addressNote: o.addressNote ?? "",
+      attachments: o.attachments.map((a) => ({ id: a.id, kind: a.kind === "video" ? "video" : "image" })),
     });
     return {
       id: o.id, contactId: o.contactId, customer: o.contact.name,
@@ -639,6 +650,7 @@ export async function getDayProgram(dateISO: string): Promise<DayProgram> {
         subscriptionNo: meta?.subNo ?? null, phone: meta?.phone ?? null, status: meta?.status ?? "Afventer levering",
         tasks: (meta?.tasks ?? []).map((t) => ({ category: t.category, letter: t.letter, description: t.description, price: t.price, durationMin: t.durationMin })),
         comment: meta?.comment ?? "", addressNote: meta?.addressNote ?? "",
+        attachments: meta?.attachments ?? [],
       };
     });
 

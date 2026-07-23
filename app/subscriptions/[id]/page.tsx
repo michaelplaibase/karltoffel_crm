@@ -43,7 +43,7 @@ export default async function EditSubscription({ params }: { params: Promise<{ i
         employees={employees}
         initial={{
           contactId: sub.contactId, baseInterval: sub.baseInterval, startWeek: sub.startWeek,
-          fixedEmployee: sub.fixedEmployee, tasks: sub.tasks,
+          fixedEmployee: sub.fixedEmployee, tasks: sub.tasks, attachments: sub.attachments,
         }}
         title={`Rediger abonnement #${sub.displayNo}`}
         submitLabel="Opdater abonnement"

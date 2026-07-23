@@ -6,6 +6,7 @@ import type { SubscriptionState } from "@/app/actions/subscriptions";
 import ContactPicker, { type ContactOption } from "@/components/ContactPicker";
 import TaskLineEditor, { blankTaskRow, type TaskRow } from "@/components/TaskLineEditor";
 import PauseSection from "@/components/PauseSection";
+import AttachmentUploader, { type ExistingAttachment } from "@/components/AttachmentUploader";
 
 const BASE_INTERVALS = [
   "Hver uge", "Hver 2. uge", "Hver 3. uge", "Hver 4. uge", "Hver 5. uge", "Hver 6. uge",
@@ -19,6 +20,7 @@ export type SubscriptionInitial = {
   // pauseYearly i strengform) — redigeringssiden prefiller dem fra
   // getSubscriptionEditData; opret-siden lader dem stå tomme (pause slået fra).
   tasks: TaskRow[];
+  attachments?: ExistingAttachment[];
 };
 
 export default function SubscriptionForm({
@@ -83,6 +85,13 @@ export default function SubscriptionForm({
           <select name="fixedEmployee" defaultValue={initial?.fixedEmployee ?? "Ingen"} className="form-control form-control-sm">
             {employees.map((e) => <option key={e} value={e}>{e === "Ingen" ? "Vælges automatisk" : e}</option>)}
           </select>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><h4 className="section-title">Vedhæftninger</h4></div>
+        <div className="card-body tight">
+          <AttachmentUploader scope="subscription" existing={initial?.attachments} />
         </div>
       </div>
 

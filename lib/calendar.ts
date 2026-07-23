@@ -119,6 +119,7 @@ export type DayStop = {
   tasks: { category: string; letter: string; description: string; price: number; durationMin: number }[];
   comment: string;
   addressNote: string;
+  attachments: { id: number; kind: "image" | "video" }[];
 };
 
 export type DayProgram = {

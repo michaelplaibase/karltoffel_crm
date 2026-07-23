@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { CatChip, money, telHref, telDisplay } from "@/components/ui";
 import { deleteOrder } from "@/app/actions/orders";
+import AttachmentGallery from "@/components/AttachmentGallery";
 import type { DayStop } from "@/lib/calendar";
 
 export default function DayStopCard({ stop, weekMonday }: { stop: DayStop; weekMonday: string }) {
@@ -62,7 +63,9 @@ export default function DayStopCard({ stop, weekMonday }: { stop: DayStop; weekM
 
         {panel && (
           <div className="help-note" style={{ marginTop: 8, fontSize: 12.5 }}>
-            {panel === "fotos" && "Ingen fotos på ordren."}
+            {panel === "fotos" && (stop.attachments.length > 0
+              ? <AttachmentGallery items={stop.attachments} size={72} />
+              : "Ingen fotos på ordren.")}
             {panel === "bemærkninger" && (stop.comment || stop.addressNote
               ? <>{stop.comment && <div>Ordrekommentar: {stop.comment}</div>}{stop.addressNote && <div>Adressebemærkning: {stop.addressNote}</div>}</>
               : "Ingen bemærkninger")}

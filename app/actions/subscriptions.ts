@@ -5,6 +5,7 @@
 import { prisma, isUniqueViolation } from "@/lib/db";
 import { guardAction } from "@/lib/api-auth";
 import { categoryColor } from "@/lib/categories";
+import { parseAttachmentRefs, attachmentCreateData } from "@/lib/attachments";
 import { generateForSubscriptionId, generateAllSubscriptionOrders, regenerateFutureOrders } from "@/lib/recurrence";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -140,6 +141,7 @@ export async function createSubscription(_prev: SubscriptionState, formData: For
 
   const nextWeek = p.lines.map((l) => l.nextWeek).find(Boolean) || p.startWeek || null;
   const deliveryAddress = contact.city ? `${contact.street}, ${contact.city}` : contact.street;
+  const attachments = parseAttachmentRefs(formData.get("attachments"));
 
   // Allocate "Abo. nr." (displayNo) + insert with retry: two concurrent creates
   // can read the same max and collide on the unique index (P2002) — re-read on retry.
@@ -153,6 +155,7 @@ export async function createSubscription(_prev: SubscriptionState, formData: For
           displayNo, contactId: p.contactId, deliveryAddress,
           baseInterval: p.baseInterval, startWeek: p.startWeek || null, nextWeek,
           fixedEmployee: p.fixedEmployee, tasks: { create: taskCreate(p.lines) },
+          attachments: { create: attachmentCreateData(attachments) },
         },
       });
       subId = created.id; subDisplayNo = created.displayNo;
@@ -177,9 +180,14 @@ export async function updateSubscription(pk: number, _prev: SubscriptionState, f
   const contact = await prisma.contact.findUnique({ where: { id: p.contactId } });
   if (!contact) return { error: "Kunden blev ikke fundet." };
   const nextWeek = p.lines.map((l) => l.nextWeek).find(Boolean) || p.startWeek || null;
+  // Vedhæftninger genskabes fra den fulde liste, formularen submitter (både
+  // beholdte og nye). Gamle rækker slettes først; blob-objekter for fjernede
+  // vedhæftninger efterlades forældreløse (fanges af en senere GC-sweep).
+  const attachments = parseAttachmentRefs(formData.get("attachments"));
 
   await prisma.$transaction([
     prisma.taskLine.deleteMany({ where: { subscriptionId: pk } }),
+    prisma.attachment.deleteMany({ where: { subscriptionId: pk } }),
     prisma.subscription.update({
       where: { id: pk },
       data: {
@@ -187,6 +195,7 @@ export async function updateSubscription(pk: number, _prev: SubscriptionState, f
         deliveryAddress: contact.city ? `${contact.street}, ${contact.city}` : contact.street,
         baseInterval: p.baseInterval, startWeek: p.startWeek || null, nextWeek,
         fixedEmployee: p.fixedEmployee, tasks: { create: taskCreate(p.lines) },
+        attachments: { create: attachmentCreateData(attachments) },
       },
     }),
   ]);
