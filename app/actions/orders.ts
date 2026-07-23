@@ -157,7 +157,15 @@ export async function completeOrder(orderId: number, _prev: CompleteOrderState, 
 
   await prisma.order.update({
     where: { id: orderId },
-    data: { status: STATUS[leveringsstatus], comment: comment || null, addressNote: addressNote || null, invoiceDecision },
+    data: {
+      status: STATUS[leveringsstatus],
+      comment: comment || null,
+      addressNote: addressNote || null,
+      // Only overwrite the invoicing decision when one was actually chosen — re-completing
+      // an order merely to fix status/comment must not wipe a previously stored decision
+      // (the radios have no default selection).
+      ...(invoiceDecision ? { invoiceDecision } : {}),
+    },
   });
 
   // Fire Dinero invoicing (dry-run unless configured). Decoupled: it never throws

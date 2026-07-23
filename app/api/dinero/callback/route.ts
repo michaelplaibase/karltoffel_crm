@@ -10,7 +10,9 @@ import { prisma } from "@/lib/db";
 import { verifyState, connectFromCallback, currentCompanyId, redirectUriFor } from "@/lib/dinero";
 
 function back(origin: string, params: string) {
-  return NextResponse.redirect(new URL(`/accounting?${params}`, origin), 303);
+  const res = NextResponse.redirect(new URL(`/accounting?${params}`, origin), 303);
+  res.cookies.set("dinero_oauth", "", { path: "/api/dinero", maxAge: 0 }); // single-use: clear the nonce
+  return res;
 }
 
 export async function POST(req: NextRequest) {
@@ -21,11 +23,16 @@ export async function POST(req: NextRequest) {
   const oauthError = form?.get("error")?.toString();
   if (oauthError) return back(origin, `fejl=${encodeURIComponent(oauthError.slice(0, 140))}`);
 
-  const userId = verifyState(state);
-  if (!userId || !code) return back(origin, "fejl=state");
+  const parsed = verifyState(state);
+  const cookieNonce = req.cookies.get("dinero_oauth")?.value;
+  if (!parsed || !code) return back(origin, "fejl=state");
+  // The state's nonce must match the browser's single-use cookie (blocks replay /
+  // authorization-code injection from a browser that never started this flow).
+  if (!cookieNonce || cookieNonce !== parsed.nonce) return back(origin, "fejl=state");
 
-  // Re-validate that the state's user is still an active admin (no cookie needed).
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true, active: true } });
+  // Re-validate that the state's user is still an active admin (no session cookie on
+  // the cross-site POST, so the signed state + admin lookup is the authorization).
+  const user = await prisma.user.findUnique({ where: { id: parsed.userId }, select: { isAdmin: true, active: true } });
   if (!user?.active || !user.isAdmin) return back(origin, "fejl=admin");
 
   try {

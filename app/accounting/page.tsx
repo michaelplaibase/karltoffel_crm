@@ -46,7 +46,7 @@ export default async function AccountingPage({
       </p>
 
       {ok ? <div className="help-note" style={{ color: "var(--success, #2e7d32)" }}>Forbundet til Dinero.</div> : null}
-      {fejl ? <div className="help-note" style={{ color: "var(--danger, #C4183C)" }}>{FEJL[fejl] ?? decodeURIComponent(fejl)}</div> : null}
+      {fejl ? <div className="help-note" style={{ color: "var(--danger, #C4183C)" }}>{FEJL[fejl] ?? fejl}</div> : null}
 
       <div className="card">
         <div className="card-header"><h4 className="section-title">Dinero integration</h4></div>
