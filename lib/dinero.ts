@@ -1,37 +1,36 @@
 // Dinero (Visma) invoicing — raw fetch, no SDK (same deliberately dependency-free
-// pattern as lib/email.ts / lib/gcal.ts). Node-only (uses node:crypto); never
-// import from middleware or a client component.
+// pattern as lib/email.ts / lib/gcal.ts). Node-only; never import from middleware
+// or a client component.
 //
-// Dry-run by default: NOTHING is sent to api.dinero.dk / connect.visma.com until
-// DINERO_CLIENT_ID + DINERO_CLIENT_SECRET + DINERO_TOKEN_ENC_KEY are set AND the
-// company is connected to a Dinero organization (a DineroConnection row). Setting
-// DINERO_DRY_RUN=1 forces simulation even when configured — keep it "1" on
-// preview/dev so a preview can never book a real invoice in the production org.
+// AUTH: a Dinero Personal API Client (client_credentials, machine-to-machine). The
+// client id/secret live in the environment; there is NO browser consent, NO redirect
+// URI, and NO refresh token — an access token is fetched on demand and cached in
+// memory. The organization id is embedded in the client id (pcc_<orgId>_...).
+//
+// Dry-run by default: NOTHING is sent to api.dinero.dk / the token endpoint until
+// DINERO_CLIENT_ID + DINERO_CLIENT_SECRET are set. DINERO_DRY_RUN=1 forces
+// simulation even when configured — keep it "1" on preview/dev so a preview can
+// never book a real invoice in the production org.
 //
 // ─── PROVENANCE / VERIFY BEFORE GO-LIVE ───────────────────────────────────────
-// The Dinero REST shapes below (endpoint VERSIONS, PascalCase field names, `fields`
-// selectors, VAT semantics) were reconstructed from Dinero's docs + open-source
-// clients; the live spec could not be fetched from this environment and Dinero has
-// no sandbox. Before flipping DINERO_DRY_RUN off in production, verify against
-// https://api.dinero.dk/openapi/index.html on a 30-day trial Pro org:
-//   • organizations version (v1 vs v1.1) + the IsPro field name in the `fields` list,
-//   • invoice create/book/email/payments versions + payment-list shape,
-//   • that ShowLinesInclVat=true + BaseAmountValue=<kr incl VAT> yields the right
-//     TotalInclVat. Responses are parsed case-insensitively so casing drift is
-//     tolerated; the pre-book total check fails CLOSED if no total comes back.
+// The Dinero REST shapes (endpoint VERSIONS, PascalCase field names, `fields`
+// selectors, VAT semantics) AND the client_credentials token endpoint/scope were
+// reconstructed from Dinero's docs + open-source clients; the live spec could not be
+// fetched from this environment and Dinero has no sandbox. The token endpoint + scope
+// are overridable via env (DINERO_TOKEN_URL / DINERO_SCOPE) precisely so they can be
+// corrected without a code change once confirmed against the Dinero API-client page.
+// Before flipping DINERO_DRY_RUN off in production, use "Test forbindelse" on
+// /accounting and verify a full draft→book→send→pay cycle on the real org.
 import { prisma } from "./db";
-import {
-  randomBytes, createHmac, createHash, createCipheriv, createDecipheriv, timingSafeEqual,
-} from "node:crypto";
 import type { DineroConnection } from "@prisma/client";
 
 // ─── Endpoints (VERSIONS ARE PROVISIONAL — verify against the live OpenAPI) ────
 const API_BASE = "https://api.dinero.dk";
-const CONNECT_BASE = "https://connect.visma.com";
+const DEFAULT_TOKEN_URL = "https://connect.visma.com/connect/token";
+const DEFAULT_SCOPE = "dineropublicapi:read dineropublicapi:write";
 const V_ORGS = "v1";
 const V_CONTACTS = "v1";
 const V_INVOICES = "v1";
-const SCOPES = "dineropublicapi:read dineropublicapi:write offline_access";
 const FETCH_TIMEOUT_MS = 10_000;
 
 // ─── The five "Betaling og fakturering" choices (MUST match CompleteOrderForm) ─
@@ -54,23 +53,18 @@ const D_LATER: InvoiceDecision = "Registrer på et senere tidspunkt";
 
 // ─── Config / dry-run detection ───────────────────────────────────────────────
 export function envConfigured(): boolean {
-  return Boolean(
-    process.env.DINERO_CLIENT_ID?.trim() &&
-      process.env.DINERO_CLIENT_SECRET?.trim() &&
-      process.env.DINERO_TOKEN_ENC_KEY?.trim(),
-  );
+  return Boolean(process.env.DINERO_CLIENT_ID?.trim() && process.env.DINERO_CLIENT_SECRET?.trim());
 }
 function dryRunForced(): boolean {
   return process.env.DINERO_DRY_RUN === "1";
 }
-
-/** The connection to use, or null when we must dry-run (env unconfigured OR
- *  dry-run forced OR not connected). Returns the row regardless of status so the
- *  caller can distinguish a 'broken' connection (surface it) from 'not connected'
- *  (benign simulate). */
-async function loadActiveConnection(): Promise<DineroConnection | null> {
-  if (!envConfigured() || dryRunForced()) return null;
-  return prisma.dineroConnection.findFirst();
+/** The Dinero organization id: explicit env override, else parsed from the client
+ *  id (pcc_<orgId>_...). Every resource path is scoped to it. */
+export function resolveOrgId(): string | null {
+  const explicit = process.env.DINERO_ORG_ID?.trim();
+  if (explicit) return explicit;
+  const m = (process.env.DINERO_CLIENT_ID ?? "").match(/^[a-z]+_(\d+)_/i);
+  return m ? m[1] : null;
 }
 
 export async function currentCompanyId(): Promise<number> {
@@ -78,179 +72,50 @@ export async function currentCompanyId(): Promise<number> {
   return c?.id ?? 1;
 }
 
-// ─── Token encryption at rest (AES-256-GCM) ───────────────────────────────────
-function encKey(): Buffer {
-  const raw = process.env.DINERO_TOKEN_ENC_KEY ?? "";
-  if (/^[0-9a-fA-F]{64}$/.test(raw)) return Buffer.from(raw, "hex"); // 32 bytes hex
-  return createHash("sha256").update(raw).digest(); // any string → 32 bytes
-}
-function encryptToken(plain: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encKey(), iv);
-  const ct = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return `${iv.toString("base64")}:${tag.toString("base64")}:${ct.toString("base64")}`;
-}
-function decryptToken(enc: string): string {
-  const [ivB, tagB, ctB] = enc.split(":");
-  if (!ivB || !tagB || !ctB) throw new Error("Ugyldigt krypteret token");
-  const decipher = createDecipheriv("aes-256-gcm", encKey(), Buffer.from(ivB, "base64"));
-  decipher.setAuthTag(Buffer.from(tagB, "base64"));
-  return Buffer.concat([decipher.update(Buffer.from(ctB, "base64")), decipher.final()]).toString("utf8");
+type ActiveConfig = { orgId: string; salesAccountNumber: number; cashAccountNumber: number };
+/** The config to use for real calls, or null when we must dry-run (env unconfigured,
+ *  dry-run forced, or org id unresolvable). Account numbers come from the cached
+ *  DineroConnection row if present, else the standard-chart defaults. */
+async function loadActiveConfig(): Promise<ActiveConfig | null> {
+  if (!envConfigured() || dryRunForced()) return null;
+  const orgId = resolveOrgId();
+  if (!orgId) return null;
+  const conn = await prisma.dineroConnection.findFirst();
+  return {
+    orgId,
+    salesAccountNumber: conn?.salesAccountNumber ?? 1000,
+    cashAccountNumber: conn?.cashAccountNumber ?? 55040,
+  };
 }
 
-// ─── OAuth state (stateless HMAC + single-use nonce bound to a cookie) ─────────
-// The nonce is embedded in the signed state AND set as a cookie on the connect
-// GET; the callback requires the two to match (single-use, browser-bound). This
-// blocks state replay / authorization-code injection despite the cross-site
-// form_post that prevents relying on the session cookie.
-function stateSecret(): string {
-  const s = process.env.SESSION_SECRET;
-  const isBuild = process.env.NEXT_PHASE === "phase-production-build";
-  if (process.env.NODE_ENV === "production" && !isBuild) {
-    if (!s || s.length < 32) throw new Error("SESSION_SECRET must be at least 32 characters in production.");
-    return s;
-  }
-  return s || "karltoffel-dev-secret-change-me";
-}
-export function signState(userId: number): { state: string; nonce: string } {
-  const nonce = randomBytes(16).toString("hex");
-  const exp = Math.floor(Date.now() / 1000) + 600; // 10 min
-  const payload = `${userId}.${exp}.${nonce}`;
-  const sig = createHmac("sha256", stateSecret()).update(payload).digest("base64url");
-  return { state: `${Buffer.from(payload).toString("base64url")}.${sig}`, nonce };
-}
-export function verifyState(state: string | null | undefined): { userId: number; nonce: string } | null {
-  try {
-    if (!state) return null;
-    const i = state.lastIndexOf(".");
-    if (i < 0) return null;
-    const payload = Buffer.from(state.slice(0, i), "base64url").toString();
-    const sigBuf = Buffer.from(state.slice(i + 1), "base64url");
-    const expBuf = Buffer.from(createHmac("sha256", stateSecret()).update(payload).digest("base64url"), "base64url");
-    // Compare decoded buffers — timingSafeEqual throws on length mismatch, so guard it.
-    if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) return null;
-    const parts = payload.split(".");
-    if (parts.length !== 3) return null;
-    const [id, exp, nonce] = parts;
-    if (!id || !exp || !nonce || Number(exp) * 1000 < Date.now()) return null;
-    const userId = Number(id);
-    return Number.isFinite(userId) ? { userId, nonce } : null;
-  } catch {
-    return null;
-  }
-}
+// ─── Access token (client_credentials) with a small in-memory cache ───────────
+// No refresh token, no rotation, no replay risk — we can fetch a fresh token
+// whenever the cached one is near expiry. Cache is per serverless instance; that is
+// fine (token requests are cheap and idempotent).
+let tokenCache: { token: string; exp: number } | null = null;
 
-// ─── OAuth URLs + token requests ──────────────────────────────────────────────
-export function redirectUriFor(origin: string): string {
-  return process.env.DINERO_REDIRECT_URI?.trim() || `${origin}/api/dinero/callback`;
-}
-export function buildAuthorizeUrl(redirectUri: string, state: string): string {
-  const p = new URLSearchParams({
-    client_id: process.env.DINERO_CLIENT_ID ?? "",
-    response_type: "code",
-    response_mode: "form_post", // → the authorization code is POSTed to redirect_uri
-    scope: SCOPES,
-    redirect_uri: redirectUri,
-    state,
-    ui_locales: "da-DK",
-  });
-  return `${CONNECT_BASE}/connect/authorize?${p.toString()}`;
-}
-
-type TokenResponse = { access_token: string; refresh_token?: string; expires_in: number; scope?: string };
-
-async function tokenRequest(params: Record<string, string>): Promise<TokenResponse> {
-  const res = await fetch(`${CONNECT_BASE}/connect/token`, {
+async function getAccessToken(): Promise<string> {
+  if (tokenCache && tokenCache.exp - Date.now() > 60_000) return tokenCache.token;
+  const url = process.env.DINERO_TOKEN_URL?.trim() || DEFAULT_TOKEN_URL;
+  const scope = process.env.DINERO_SCOPE?.trim() || DEFAULT_SCOPE;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
+      grant_type: "client_credentials",
       client_id: process.env.DINERO_CLIENT_ID ?? "",
       client_secret: process.env.DINERO_CLIENT_SECRET ?? "",
-      ...params,
+      scope,
     }).toString(),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   const raw = await res.text().catch(() => "");
-  let data: Record<string, unknown> = {};
-  try { data = raw ? (JSON.parse(raw) as Record<string, unknown>) : {}; } catch { /* keep raw */ }
-  if (!res.ok) throw new DineroApiError(res.status, `Visma token ${res.status}: ${raw.slice(0, 300)}`, raw);
-  return data as unknown as TokenResponse;
-}
-export function exchangeCodeForTokens(code: string, redirectUri: string): Promise<TokenResponse> {
-  return tokenRequest({ grant_type: "authorization_code", code, redirect_uri: redirectUri });
-}
-function refreshTokens(refreshToken: string): Promise<TokenResponse> {
-  return tokenRequest({ grant_type: "refresh_token", refresh_token: refreshToken });
-}
-
-// Marker so getAccessToken can tell a definitive grant rejection (→ mark broken)
-// from a transient failure (network / 5xx → leave the connection intact).
-class RefreshFailed extends Error {
-  definitive: boolean;
-  constructor(message: string, definitive: boolean) {
-    super(message);
-    this.definitive = definitive;
-  }
-}
-
-// ─── Access token with single-flight refresh under a row lock ─────────────────
-// Refresh tokens ROTATE and are one-time: two invocations refreshing at once would
-// double-exchange and Visma invalidates the ENTIRE authorization. A SELECT … FOR
-// UPDATE on the connection row serialises refreshes — the loser waits, re-reads the
-// freshly rotated access token, and returns it WITHOUT calling Visma again.
-async function getAccessToken(conn: DineroConnection): Promise<string> {
-  const valid = (a: string | null, exp: Date | null) => Boolean(a && exp && exp.getTime() - Date.now() > 60_000);
-  if (valid(conn.accessToken, conn.accessTokenExpiresAt)) return conn.accessToken as string;
-
-  try {
-    return await prisma.$transaction(
-      async (tx) => {
-        const rows = await tx.$queryRaw<
-          Array<{ accessToken: string | null; accessTokenExpiresAt: Date | null; refreshTokenEnc: string }>
-        >`SELECT "accessToken", "accessTokenExpiresAt", "refreshTokenEnc" FROM "DineroConnection" WHERE "id" = ${conn.id} FOR UPDATE`;
-        const fresh = rows[0];
-        if (!fresh) throw new RefreshFailed("Dinero-forbindelsen findes ikke længere", true);
-        const exp = fresh.accessTokenExpiresAt ? new Date(fresh.accessTokenExpiresAt) : null;
-        if (valid(fresh.accessToken, exp)) return fresh.accessToken as string; // another request refreshed while we waited
-
-        let tok: TokenResponse;
-        try {
-          tok = await refreshTokens(decryptToken(fresh.refreshTokenEnc));
-        } catch (e) {
-          // Definitive only on a 400/401 grant rejection; transient (network/5xx) must NOT break the connection.
-          const definitive =
-            e instanceof DineroApiError && (e.status === 400 || e.status === 401) && /invalid_grant/i.test(e.raw);
-          throw new RefreshFailed(e instanceof Error ? e.message : "refresh fejlede", definitive);
-        }
-        const newExp = new Date(Date.now() + (Math.max(60, tok.expires_in || 3600) - 60) * 1000);
-        await tx.dineroConnection.update({
-          where: { id: conn.id },
-          data: {
-            refreshTokenEnc: encryptToken(tok.refresh_token ?? decryptToken(fresh.refreshTokenEnc)),
-            accessToken: tok.access_token,
-            accessTokenExpiresAt: newExp,
-            scopes: tok.scope ?? conn.scopes,
-            status: "connected",
-          },
-        });
-        return tok.access_token;
-      },
-      { timeout: 20_000 },
-    );
-  } catch (e) {
-    if (e instanceof RefreshFailed) {
-      // Mark broken OUTSIDE the (now rolled-back) transaction, and only when the
-      // grant is definitively dead — otherwise a transient blip would strand the
-      // integration in a fake-success 'simulated' state.
-      if (e.definitive) {
-        await prisma.dineroConnection.update({ where: { id: conn.id }, data: { status: "broken" } }).catch(() => {});
-        throw new Error(`Dinero-forbindelsen er udløbet og skal gen-forbindes (${e.message})`);
-      }
-      throw new Error(`Kunne ikke forny Dinero-adgang (midlertidig fejl): ${e.message}`);
-    }
-    throw e;
-  }
+  if (!res.ok) throw new DineroApiError(res.status, `Token ${res.status}: ${raw.slice(0, 300)}`, raw);
+  let data: { access_token?: string; expires_in?: number } = {};
+  try { data = JSON.parse(raw); } catch { /* leave empty */ }
+  if (!data.access_token) throw new Error("Token-svar uden access_token");
+  tokenCache = { token: data.access_token, exp: Date.now() + (Math.max(60, data.expires_in ?? 3600) - 60) * 1000 };
+  return data.access_token;
 }
 
 // ─── Low-level resource fetch + response helpers ──────────────────────────────
@@ -456,8 +321,8 @@ async function emailInvoice(access: string, org: string, guid: string, timeStamp
   });
 }
 
-/** Best-effort: does the invoice already have a payment registered? Used to avoid
- *  double-registering a cash payment when a prior run crashed after the POST. If the
+/** Best-effort: does the invoice already have a payment registered? Avoids
+ *  double-registering a cash payment if a prior run crashed after the POST. If the
  *  lookup itself fails we return false (proceed) — the narrow crash+lookup-fail race
  *  is accepted; the per-order lock covers the common double-click case. */
 async function invoiceHasPayment(access: string, org: string, guid: string): Promise<boolean> {
@@ -485,12 +350,11 @@ async function registerPayment(
   return strOr(ci(data, "PaymentGuid")) ?? strOr(ci(data, "Guid"));
 }
 
-// ─── Organizations + connection persistence (used by the OAuth callback) ──────
-export async function discoverOrganizations(
+// ─── Organizations + connection test (used by /accounting "Test forbindelse") ─
+async function fetchOrganizations(
   access: string,
 ): Promise<Array<{ organizationId: string; name: string | null; isPro: boolean }>> {
-  // Request IsPro explicitly — list endpoints omit non-default fields otherwise,
-  // which would make every org look non-Pro and pick the wrong one.
+  // Request IsPro explicitly — list endpoints omit non-default fields otherwise.
   const data = await dineroJson("GET", `${API_BASE}/${V_ORGS}/organizations?fields=Name,Id,IsPro`, access);
   return coll(data)
     .map((o) => ({
@@ -501,47 +365,44 @@ export async function discoverOrganizations(
     .filter((o) => o.organizationId);
 }
 
-/** Complete the OAuth handshake: exchange the code, pick the organization
- *  (single-tenant: prefer a Pro org), and persist an (encrypted) connection. */
-export async function connectFromCallback(
-  companyId: number,
-  code: string,
-  redirectUri: string,
-): Promise<{ organizationId: string; orgName: string | null; isPro: boolean }> {
-  const tok = await exchangeCodeForTokens(code, redirectUri);
-  if (!tok.refresh_token) throw new Error("Ingen refresh_token modtaget (mangler offline_access-scope?)");
-  const orgs = await discoverOrganizations(tok.access_token);
-  if (!orgs.length) throw new Error("Ingen Dinero-organisationer tilgængelige for brugeren");
-  const chosen = orgs.find((o) => o.isPro) ?? orgs[0]; // v1: single-tenant, prefer Pro (API requires Pro)
+export type TestResult = { ok: boolean; organizationId?: string; orgName?: string | null; isPro?: boolean; error?: string };
 
-  const expiresAt = new Date(Date.now() + (Math.max(60, tok.expires_in || 3600) - 60) * 1000);
-  const enc = encryptToken(tok.refresh_token);
-  await prisma.dineroConnection.upsert({
-    where: { companyId },
-    create: {
-      companyId, organizationId: chosen.organizationId, orgName: chosen.name, isPro: chosen.isPro,
-      refreshTokenEnc: enc, accessToken: tok.access_token, accessTokenExpiresAt: expiresAt,
-      scopes: tok.scope, status: "connected",
-    },
-    update: {
-      organizationId: chosen.organizationId, orgName: chosen.name, isPro: chosen.isPro,
-      refreshTokenEnc: enc, accessToken: tok.access_token, accessTokenExpiresAt: expiresAt,
-      scopes: tok.scope, status: "connected",
-    },
-  });
-  return { organizationId: chosen.organizationId, orgName: chosen.name, isPro: chosen.isPro };
+/** Fetch a token and confirm the org is reachable; cache org name/isPro + status on
+ *  the DineroConnection row. Surfaces the exact error so the token endpoint/scope can
+ *  be corrected via env if the client_credentials assumption is off. */
+export async function testDineroConnection(companyId: number): Promise<TestResult> {
+  if (!envConfigured()) return { ok: false, error: "DINERO_CLIENT_ID/SECRET mangler i miljøet." };
+  const orgId = resolveOrgId();
+  if (!orgId) return { ok: false, error: "Kunne ikke udlede organisations-ID af client-id'et (forventet pcc_<id>_...). Sæt evt. DINERO_ORG_ID." };
+  try {
+    const access = await getAccessToken();
+    const orgs = await fetchOrganizations(access);
+    const match = orgs.find((o) => o.organizationId === orgId) ?? orgs[0];
+    if (!match) return { ok: false, error: "Ingen Dinero-organisation tilgængelig for denne API-klient." };
+    await prisma.dineroConnection.upsert({
+      where: { companyId },
+      create: { companyId, organizationId: match.organizationId, orgName: match.name, isPro: match.isPro, status: "connected" },
+      update: { organizationId: match.organizationId, orgName: match.name, isPro: match.isPro, status: "connected" },
+    });
+    return { ok: true, organizationId: match.organizationId, orgName: match.name, isPro: match.isPro };
+  } catch (e) {
+    await prisma.dineroConnection.updateMany({ where: { companyId }, data: { status: "error" } }).catch(() => {});
+    return { ok: false, error: (e instanceof Error ? e.message : "forbindelse fejlede").slice(0, 300) };
+  }
 }
 
 // ─── Status for the /accounting page ──────────────────────────────────────────
 export type DineroStatus = {
   envReady: boolean;
   dryRunForced: boolean;
+  orgId: string | null;
   connection: DineroConnection | null;
 };
 export async function getDineroStatus(): Promise<DineroStatus> {
   return {
     envReady: envConfigured(),
     dryRunForced: dryRunForced(),
+    orgId: resolveOrgId(),
     connection: await prisma.dineroConnection.findFirst(),
   };
 }
@@ -570,8 +431,8 @@ export async function issueInvoiceForOrder(orderId: number): Promise<IssueResult
 
   const sumInclVat = order.tasks.reduce((a, t) => a + t.price, 0);
 
-  const conn = await loadActiveConnection();
-  if (!conn) {
+  const cfg = await loadActiveConfig();
+  if (!cfg) {
     // Dry-run: log the would-be chain, mark simulated — but NEVER downgrade an order
     // that already carries a real Dinero invoice (guid present).
     console.log(`[dinero:dry-run] faktura ordre #${orderId} valg="${decision}" linjer=${order.tasks.length} sum=${sumInclVat}kr`);
@@ -581,19 +442,14 @@ export async function issueInvoiceForOrder(orderId: number): Promise<IssueResult
     });
     return { ok: true, simulated: true, status: "simulated" };
   }
-  if (conn.status === "broken") {
-    const msg = "Dinero-forbindelsen er udløbet — genforbind under Regnskab.";
-    await prisma.order.update({ where: { id: orderId }, data: { dineroInvoiceStatus: "Failed", dineroError: msg } });
-    return { ok: false, status: "Failed", error: msg };
-  }
 
   // Resume markers taken from the pre-run snapshot (dineroInvoiceNumber is assigned
   // only at booking and is never cleared, so it survives a 'Failed' status write).
   const alreadyBooked = BOOKED_STATES.has(order.dineroInvoiceStatus ?? "") || order.dineroInvoiceNumber != null;
 
   try {
-    const access = await getAccessToken(conn);
-    const org = conn.organizationId;
+    const access = await getAccessToken();
+    const org = cfg.orgId;
 
     // 1. Ensure a Dinero contact. Do not steal a guid already owned by another
     //    CRM contact (duplicate customers sharing an email/CVR) — that would violate
@@ -626,14 +482,12 @@ export async function issueInvoiceForOrder(orderId: number): Promise<IssueResult
         }
         if (!guid) {
           const draft = await createDraftInvoice(access, org, {
-            contactGuid, orderId, salesAccountNumber: conn.salesAccountNumber,
+            contactGuid, orderId, salesAccountNumber: cfg.salesAccountNumber,
             tasks: order.tasks.map((t) => ({ description: t.description, price: t.price })),
           });
           guid = draft.guid;
           timeStamp = draft.timeStamp;
         }
-        // Persist the guid inside the lock (fixes the adopt/crash path where it was
-        // previously only a local variable). Keep a booked status if we already have one.
         const keepBooked = row && BOOKED_STATES.has(row.dineroInvoiceStatus ?? "");
         await tx.order.update({
           where: { id: orderId },
@@ -714,7 +568,7 @@ export async function issueInvoiceForOrder(orderId: number): Promise<IssueResult
       if (order.dineroInvoiceStatus !== "Paid" && !(await invoiceHasPayment(access, org, guid))) {
         paymentGuid = await registerPayment(access, org, guid, {
           amount: bookedTotal ?? sumInclVat, // Dinero's own booked total, not the CRM Int sum
-          depositAccountNumber: conn.cashAccountNumber,
+          depositAccountNumber: cfg.cashAccountNumber,
           timeStamp,
         });
       }

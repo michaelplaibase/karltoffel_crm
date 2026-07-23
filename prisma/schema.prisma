@@ -286,12 +286,12 @@ model TimeEntry {
 }
 
 // Dinero (Visma) regnskabsforbindelse — én pr. Company (single-tenant).
-// Rummer resultatet af Visma Connect OAuth (authorization_code): den
-// organisation brugeren valgte + roterende tokens. refreshTokenEnc er
-// AES-256-GCM-krypteret (nøgle = DINERO_TOKEN_ENC_KEY). accessToken caches til
-// det udløber (~1 t); refresh-tokenet ROTERER ved hver brug og opdateres i en
-// række-lås (SELECT … FOR UPDATE), så to samtidige refreshes ikke laver et
-// dobbelt-exchange, der ellers ugyldiggør HELE autorisationen hos Visma.
+// Auth er en Dinero Personal API Client (client_credentials): client-id/secret
+// ligger i miljøet (DINERO_CLIENT_ID/SECRET), organisations-ID'et udledes af
+// client-id'et (pcc_<orgId>_...). Access-tokenet hentes on-demand og caches i
+// hukommelsen — der er INTET refresh-token at gemme/rotere. Denne række cacher
+// blot den verificerede organisation + de to kontonumre, fakturaer/betalinger
+// bogføres på, og opdateres af "Test forbindelse" på /accounting.
 model DineroConnection {
   id             Int       @id @default(autoincrement())
   company        Company   @relation(fields: [companyId], references: [id])
@@ -299,13 +299,9 @@ model DineroConnection {
   organizationId String    // Dinero firma-/organisations-ID (numerisk, gemt som streng — indgår i alle resource-URL'er)
   orgName        String?
   isPro          Boolean   @default(false) // API'et kræver Dinero Pro
-  refreshTokenEnc String   // AES-256-GCM: "ivB64:tagB64:cipherB64"
-  accessToken    String?   // cachet bearer-token (roterer)
-  accessTokenExpiresAt DateTime?
-  scopes         String?
   salesAccountNumber Int   @default(1000)  // kontonr. i Dinero kontoplan til bogføring af salg (afsendte fakturaer)
   cashAccountNumber  Int   @default(55040) // indbetalingskonto (kasse) til "betalt kontant"
-  status         String    @default("connected") // connected | broken (kræver gen-forbindelse)
+  status         String    @default("connected") // connected | error
   connectedAt    DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }

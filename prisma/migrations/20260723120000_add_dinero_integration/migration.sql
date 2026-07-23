@@ -19,8 +19,10 @@ ALTER TABLE "Order" ADD COLUMN "dineroError" TEXT;
 ALTER TABLE "Order" ADD COLUMN "invoicedAt" TIMESTAMP(3);
 CREATE UNIQUE INDEX "Order_dineroInvoiceGuid_key" ON "Order"("dineroInvoiceGuid");
 
--- DineroConnection: one row per Company (single-tenant). Holds the Visma Connect
--- OAuth result — chosen organization + rotating (encrypted) tokens + the two
+-- DineroConnection: one row per Company (single-tenant). Auth is a Dinero Personal
+-- API Client (client_credentials) whose secrets live in the environment and whose
+-- access token is fetched on demand + cached in memory — nothing token-related is
+-- stored here. This row just caches the verified organization + the two
 -- chart-of-accounts numbers invoices/payments post to.
 CREATE TABLE "DineroConnection" (
     "id" SERIAL NOT NULL,
@@ -28,10 +30,6 @@ CREATE TABLE "DineroConnection" (
     "organizationId" TEXT NOT NULL,
     "orgName" TEXT,
     "isPro" BOOLEAN NOT NULL DEFAULT false,
-    "refreshTokenEnc" TEXT NOT NULL,
-    "accessToken" TEXT,
-    "accessTokenExpiresAt" TIMESTAMP(3),
-    "scopes" TEXT,
     "salesAccountNumber" INTEGER NOT NULL DEFAULT 1000,
     "cashAccountNumber" INTEGER NOT NULL DEFAULT 55040,
     "status" TEXT NOT NULL DEFAULT 'connected',
