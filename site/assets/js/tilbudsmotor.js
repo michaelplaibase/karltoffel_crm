@@ -16,7 +16,9 @@ const $ = (id) => ROOT.querySelector("#" + id);
    inkl. CSV'ens stavefejl: "Tagrenerens 2-plans hus", "Vindeuspudsning
    Indvendig pr glas", "Ukrudt bekæmpelse på belægningsarealer".
    wm = null ⇒ findes endnu ikke i WorkMaker; opret som 0-kr placeholder:
-   robot, husgarage, stub, drivhus, fliserens, sne.
+   stub, drivhus, fliserens, sne. NYE prissatte pakke-linjer (facadevask,
+   garageport, doere, robot) bruger foreløbigt wm = visningsnavn — bekræft
+   eller opret dem i WorkMaker.
    alge → CSV "Algebehandling af tag"; algeflis → CSV "Algebehandling af
    belægning". beskaering er prissat fra CSV "Beskæring Små træer /
    Frugttræer" (500 kr). pris:null = "Indeholdt" (pakke:true) eller
@@ -29,9 +31,10 @@ const PRODUCTS = [
   {id:"green",    navn:"Greenkeeper græspleje",          enhed:"m² plæne",   pris:2.30,  note:"Gødning og pleje af plænen",      qty:450, freq:3,  fmax:6,  on:true,  pakke:true, kat:"pakke", wm:"Greenkeeper græspleje"},
   {id:"alge",     navn:"Algebehandling af tag",          enhed:"m² tag",     pris:4.20,  note:"Mos og alger, beregnet på skråt tagareal", qty:120, freq:1, fmax:2, on:true, pakke:true, kat:"pakke", wm:"Algebehandling af tag"},
   {id:"tagrender",navn:"Tagrenderens",                   enhed:"m tagrende", pris:18.00, note:"Stueplan / 1-plans hus",          qty:24,  freq:1,  fmax:2,  on:true,  pakke:true, kat:"pakke", wm:"Tagrenderens Stueplan / 1-plans hus"},
-  {id:"robot",    navn:"Robotplæneklipper service",      enhed:"",           pris:null,  note:"Indeholdt i pakken",              qty:1,   freq:1,  fmax:4,  on:true,  pakke:true, kat:"pakke", wm:null},
-  {id:"husgarage",navn:"Vask af hus/garage ned",         enhed:"",           pris:null,  note:"Indeholdt i pakken",              qty:1,   freq:1,  fmax:2,  on:true,  pakke:true, kat:"pakke", wm:null},
-  {id:"service",  navn:"Servicering af vinduer og døre", enhed:"",           pris:null,  note:"Indeholdt i pakken",              qty:1,   freq:1,  fmax:2,  on:true,  pakke:true, kat:"pakke", wm:"Service af vinduer og døre"},
+  {id:"robot",     navn:"Robotplæneklipper service",     enhed:"gang",       pris:250.00, note:"Pr. gang",            qty:1,   freq:1,  fmax:4,  on:true,  pakke:true, kat:"pakke", wm:"Robotplæneklipper service"},
+  {id:"facadevask",navn:"Facadevask",                    enhed:"m²",         pris:48.00,  note:"Nedvask af facade",   qty:100, freq:1,  fmax:2,  on:true,  pakke:true, kat:"pakke", wm:"Facadevask"},
+  {id:"garageport",navn:"Vask af garageporte",           enhed:"stk",        pris:50.00,  note:"Pr. garageport",      qty:1,   freq:1,  fmax:2,  on:true,  pakke:true, kat:"pakke", wm:"Vask af garageporte"},
+  {id:"doere",     navn:"Vask af døre",                  enhed:"stk",        pris:15.00,  note:"Pr. dør",             qty:2,   freq:1,  fmax:2,  on:true,  pakke:true, kat:"pakke", wm:"Vask af døre"},
 
   /* ---- Tilvalg: "Vi tilbyder også" (off som standard, gruppe = kat) ---- */
   {id:"ukrudt",    navn:"Ukrudtsbekæmpelse på belægning",         enhed:"m² fliser", pris:1.50,   note:"Vi holder fugerne rene",  qty:60,  freq:1,  fmax:8,  on:false, pakke:false, kat:"groen",   wm:"Ukrudt bekæmpelse på belægningsarealer"},
